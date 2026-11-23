@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dipendenti per Reparto • Supabase Dashboard</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Barra Superiore / Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm shrink-0">
+          <!-- Icona Team / Organigramma -->
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Anagrafica Dipendenti per Reparto</h1>
+          <p class="text-xs sm:text-sm text-slate-500">Consultazione in tempo reale da PostgreSQL / Supabase</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <!-- Badge Stato Connessione -->
+        <span id="connectionBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+          <span id="connectionDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+          <span id="connectionText">Non connesso</span>
+        </span>
+        <button id="toggleConfigBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-xs transition cursor-pointer">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Connessione
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenuto Principale -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
+
+    <!-- Pannello Configurazione Supabase -->
+    <section id="configPanel" class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Configurazione Accesso Supabase</h2>
+          <p class="text-xs text-slate-500">I parametri vengono salvati localmente nel tuo browser (<code class="bg-slate-100 px-1 rounded">localStorage</code>).</p>
+        </div>
+        <button id="loadDemoBtn" type="button" class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Prova con Dati Demo
+        </button>
+      </div>
+
+      <form id="configForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div class="md:col-span-5">
+          <label for="supabaseUrl" class="block text-xs font-medium text-slate-700 mb-1">URL Progetto Supabase</label>
+          <input
+            type="url"
+            id="supabaseUrl"
+            required
+            value="https://iruibthbogiktggdzrjh.supabase.co"
+            placeholder="https://xyz.supabase.co"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          />
+        </div>
+        <div class="md:col-span-5">
+          <label for="supabaseKey" class="block text-xs font-medium text-slate-700 mb-1">Anon Public Key (API Key)</label>
+          <div class="relative">
+            <input
+              type="password"
+              id="supabaseKey"
+              required
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              class="w-full rounded-xl border border-slate-300 pl-3.5 pr-10 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            />
+            <button type="button" id="toggleKeyVisibility" title="Mostra/Nascondi chiave" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" id="connectBtn" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-4 py-2.5 shadow-sm transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Carica Dati
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Box Messaggi di Errore / Suggerimenti SQL -->
+    <section id="errorBox" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-5 text-rose-900 space-y-3">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="flex-1 space-y-1">
+          <h3 id="errorTitle" class="text-sm font-semibold text-rose-900">Errore di caricamento</h3>
+          <p id="errorMessage" class="text-xs sm:text-sm text-rose-800"></p>
+        </div>
+      </div>
+
+      <!-- Suggerimento SQL in caso di permessi SELECT mancanti -->
+      <div id="sqlHintContainer" class="hidden bg-slate-900 text-slate-100 rounded-xl p-4 text-xs font-mono space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Esegui questo comando nell'SQL Editor di Supabase per abilitare la lettura:</span>
+          <button type="button" id="copySqlBtn" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-sans transition cursor-pointer">
+            Copia SQL
+          </button>
+        </div>
+        <pre id="sqlHintCode" class="overflow-x-auto text-emerald-300 leading-relaxed">GRANT SELECT ON TABLE public."CICC_Tbl_Dati_Archivio_anagrafico", public."CICC_Tbl_Dati_Dipendente", public."CICC_Tbl_Impostazioni_Reparto" TO anon, authenticated;</pre>
+      </div>
+    </section>
+
+    <!-- Schede Riepilogative (KPI) -->
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Dipendenti Filtrati</p>
+          <p id="kpiFiltered" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">0</p>
+          <p id="kpiFilteredSub" class="text-xs text-slate-500 mt-1">Su 0 totali caricati</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Attivi alla Data Odierna</p>
+          <p id="kpiActiveToday" class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">0</p>
+          <p class="text-xs text-slate-500 mt-1">Periodo DA - AL in corso</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Reparti Censiti</p>
+          <p id="kpiDepartments" class="text-2xl sm:text-3xl font-bold text-indigo-600 mt-1">0</p>
+          <p id="kpiSelectedDept" class="text-xs text-slate-500 mt-1 truncate max-w-[180px]">Tutti i reparti</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra Filtri Principale -->
+    <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <!-- Filtro Reparto -->
+        <div class="md:col-span-4">
+          <label for="departmentSelect" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Seleziona Reparto
+          </label>
+          <select id="departmentSelect" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+            <option value="ALL">Tutti i reparti</option>
+          </select>
+        </div>
+
+        <!-- Ricerca Testuale -->
+        <div class="md:col-span-4">
+          <label for="searchInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Cerca Dipendente o Note
+          </label>
+          <div class="relative">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Cognome, nome, ID archivio, note..."
+              class="w-full rounded-xl border border-slate-300 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            />
+          </div>
+        </div>
+
+        <!-- Filtro Visibilità -->
+        <div class="md:col-span-2">
+          <label for="visibilityFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Visibilità
+          </label>
+          <select id="visibilityFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Tutti gli stati</option>
+            <option value="VISIBLE" selected>Solo visibili</option>
+            <option value="HIDDEN">Solo nascosti</option>
+          </select>
+        </div>
+
+        <!-- Filtro Periodo -->
+        <div class="md:col-span-2">
+          <label for="periodFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Periodo
+          </label>
+          <select id="periodFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Qualsiasi data</option>
+            <option value="ACTIVE">Attivi oggi</option>
+            <option value="EXPIRED">Scaduti</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Barra azioni rapide sotto i filtri -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
+        <div id="activeFilterSummary">Nessun filtro attivo</div>
+        <div class="flex items-center gap-3">
+          <button type="button" id="resetFiltersBtn" class="text-brand-600 hover:text-brand-700 font-medium hover:underline cursor-pointer">
+            Reimposta filtri
+          </button>
+          <button type="button" id="refreshDataBtn" class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 font-medium cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Aggiorna
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabella Risultati -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <!-- Stato caricamento -->
+      <div id="loadingState" class="hidden p-12 text-center space-y-3">
+        <div class="inline-block w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+        <p class="text-sm font-medium text-slate-600">Interrogazione tabelle Supabase in corso...</p>
+      </div>
+
+      <!-- Stato vuoto -->
+      <div id="emptyState" class="p-12 text-center space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+        <h3 id="emptyTitle" class="text-base font-semibold text-slate-900">Nessun dato visualizzato</h3>
+        <p id="emptySubtitle" class="text-sm text-slate-500 max-w-md mx-auto">
+          Inserisci la tua <strong>Anon Key</strong> di Supabase qui sopra e clicca su <strong>Carica Dati</strong>, oppure usa <strong>Prova con Dati Demo</strong>.
+        </p>
+      </div>
+
+      <!-- Contenitore Tabella Responsiva -->
+      <div id="tableWrapper" class="hidden overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-left">
+          <thead class="bg-slate-50/80">
+            <tr>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Dipendente</th>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Reparto</th>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Turnazione</th>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Periodo (DA - AL)</th>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Stato</th>
+              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Note</th>
+            </tr>
+          </thead>
+          <tbody id="employeesTableBody" class="divide-y divide-slate-100 bg-white text-sm">
+            <!-- Righe generate dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modale Dettaglio Note / Scheda Dipendente -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <span id="modalDeptBadge" class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mb-1">Reparto</span>
+          <h3 id="modalEmployeeName" class="text-lg font-bold text-slate-900">Nome Cognome</h3>
+          <p id="modalEmployeeIds" class="text-xs text-slate-500">ID Dipendente: - • ID Archivio: -</p>
+        </div>
+        <button type="button" id="closeModalBtn" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl text-xs">
+        <div>
+          <span class="text-slate-500 block">Dal</span>
+          <span id="modalDateFrom" class="font-semibold text-slate-800">-</span>
+        </div>
+        <div>
+          <span class="text-slate-500 block">Al</span>
+          <span id="modalDateTo" class="font-semibold text-slate-800">-</span>
+        </div>
+        <div>
+          <span class="text-slate-500 block">Turnazione</span>
+          <span id="modalShift" class="font-semibold text-slate-800">-</span>
+        </div>
+        <div>
+          <span class="text-slate-500 block">Visibilità</span>
+          <span id="modalVisibility" class="font-semibold text-slate-800">-</span>
+        </div>
+      </div>
+
+      <div>
+        <span class="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1">Note complete</span>
+        <div id="modalNotes" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm text-slate-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
+          Nessuna nota.
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="button" id="closeModalFooterBtn" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition cursor-pointer">
+          Chiudi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast di notifica -->
+  <div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg">
+    Messaggio
+  </div>
+
+  <script>
+    // =========================================================================
+    // STATO APPLICATIVO & COSTANTI
+    // =========================================================================
+    const STORAGE_KEY_URL = 'supabase_cicc_url';
+    const STORAGE_KEY_ANON = 'supabase_cicc_anon_key';
+
+    const state = {
+      departments: [],     // Record da CICC_Tbl_Impostazioni_Reparto
+      employees: [],       // Record da CICC_Tbl_Dati_Dipendente + relazioni
+      isDemo: false
+    };
+
+    // Riferimenti DOM
+    const els = {
+      configPanel: document.getElementById('configPanel'),
+      toggleConfigBtn: document.getElementById('toggleConfigBtn'),
+      configForm: document.getElementById('configForm'),
+      supabaseUrl: document.getElementById('supabaseUrl'),
+      supabaseKey: document.getElementById('supabaseKey'),
+      toggleKeyVisibility: document.getElementById('toggleKeyVisibility'),
+      loadDemoBtn: document.getElementById('loadDemoBtn'),
+      connectionBadge: document.getElementById('connectionBadge'),
+      connectionDot: document.getElementById('connectionDot'),
+      connectionText: document.getElementById('connectionText'),
+      errorBox: document.getElementById('errorBox'),
+      errorTitle: document.getElementById('errorTitle'),
+      errorMessage: document.getElementById('errorMessage'),
+      sqlHintContainer: document.getElementById('sqlHintContainer'),
+      copySqlBtn: document.getElementById('copySqlBtn'),
+      sqlHintCode: document.getElementById('sqlHintCode'),
+      kpiFiltered: document.getElementById('kpiFiltered'),
+      kpiFilteredSub: document.getElementById('kpiFilteredSub'),
+      kpiActiveToday: document.getElementById('kpiActiveToday'),
+      kpiDepartments: document.getElementById('kpiDepartments'),
+      kpiSelectedDept: document.getElementById('kpiSelectedDept'),
+      departmentSelect: document.getElementById('departmentSelect'),
+      searchInput: document.getElementById('searchInput'),
+      visibilityFilter: document.getElementById('visibilityFilter'),
+      periodFilter: document.getElementById('periodFilter'),
+      activeFilterSummary: document.getElementById('activeFilterSummary'),
+      resetFiltersBtn: document.getElementById('resetFiltersBtn'),
+      refreshDataBtn: document.getElementById('refreshDataBtn'),
+      loadingState: document.getElementById('loadingState'),
+      emptyState: document.getElementById('emptyState'),
+      emptyTitle: document.getElementById('emptyTitle'),
+      emptySubtitle: document.getElementById('emptySubtitle'),
+      tableWrapper: document.getElementById('tableWrapper'),
+      employeesTableBody: document.getElementById('employeesTableBody'),
+      detailModal: document.getElementById('detailModal'),
+      closeModalBtn: document.getElementById('closeModalBtn'),
+      closeModalFooterBtn: document.getElementById('closeModalFooterBtn'),
+      toast: document.getElementById('toast')
+    };
+
+    // =========================================================================
+    // FUNZIONI DI UTILITÀ PER ESTRAZIONE CAMPI FLESSIBILE
+    // =========================================================================
+
+    function normalizeSupabaseBaseUrl(rawUrl) {
+      return String(rawUrl || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
+    }
+
+    /**
+     * Ricava il nome del reparto leggendo prioritariamente il campo "Reparto"
+     * di CICC_Tbl_Impostazioni_Reparto, con fallback sugli altri campi.
+     */
+    function getDepartmentLabel(deptObj, fallbackId) {
+      if (!deptObj && (fallbackId === null || fallbackId === undefined)) {
+        return 'Nessun reparto assegnato';
+      }
+      if (!deptObj) {
+        return `Reparto #${fallbackId}`;
+      }
+
+      const candidateKeys = [
+        'Reparto', 'reparto', 'REPARTO',
+        'DReparto', 'Descrizione', 'NomeReparto',
+        'Nome', 'Titolo', 'Contatore', 'Codice Assegnazione'
+      ];
+
+      for (const key of candidateKeys) {
+        if (deptObj[key] !== null && deptObj[key] !== undefined && String(deptObj[key]).trim() !== '') {
+          return String(deptObj[key]).trim();
+        }
+      }
+
+      for (const [k, v] of Object.entries(deptObj)) {
+        if (k.toLowerCase() !== 'id' && typeof v === 'string' && v.trim() !== '') {
+          return v.trim();
+        }
+      }
+
+      return `Reparto #${deptObj.ID ?? fallbackId ?? '?'}`;
+    }
+
+    /**
+     * Ricava Nome e Cognome dall'oggetto anagrafico collegato (CICC_Tbl_Dati_Archivio_anagrafico).
+     */
+    function getEmployeeDisplayInfo(empRow) {
+      const arch = empRow.CICC_Tbl_Dati_Archivio_anagrafico || null;
+      const idArch = empRow.IDArchivio;
+
+      if (!arch) {
+        return {
+          fullName: idArch ? `Dipendente ID #${idArch}` : `Record #${empRow.IDDipendente}`,
+          subtitle: idArch ? `ID Archivio: ${idArch}` : 'Anagrafica non collegata',
+          initials: idArch ? String(idArch).slice(-2) : 'ND'
+        };
+      }
+
+      const cognome = arch.Cognome ?? arch.COGNOME ?? arch.cognome ?? '';
+      const nome = arch.Nome ?? arch.NOME ?? arch.nome ?? '';
+      const nominativo = arch.Nominativo ?? arch.NOMINATIVO ?? arch.Dipendente ?? '';
+
+      let fullName = '';
+      if (cognome || nome) {
+        fullName = `${String(cognome).trim()} ${String(nome).trim()}`.trim();
+      } else if (nominativo) {
+        fullName = String(nominativo).trim();
+      } else {
+        const firstText = Object.entries(arch).find(([k, v]) =>
+          !k.toLowerCase().includes('id') && typeof v === 'string' && v.trim().length > 1
+        );
+        fullName = firstText ? firstText[1].trim() : `Dipendente ID #${idArch}`;
+      }
+
+      const initials = fullName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0].toUpperCase())
+        .join('') || 'DP';
+
+      const extraCode = arch.Matricola ?? arch.CodiceFiscale ?? arch.Codice ?? '';
+      const subtitle = extraCode
+        ? `ID Archivio: ${idArch} • ${extraCode}`
+        : `ID Archivio: ${idArch ?? '-'}`;
+
+      return { fullName, subtitle, initials };
+    }
+
+    function formatDateIT(isoStr) {
+      if (!isoStr) return '—';
+      const d = new Date(isoStr);
+      if (Number.isNaN(d.getTime())) return String(isoStr);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function isRecordActiveToday(row) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const start = row.DA ? new Date(row.DA) : null;
+      const end = row.AL ? new Date(row.AL) : null;
+
+      if (start && !Number.isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        if (today < start) return false;
+      }
+      if (end && !Number.isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        if (today > end) return false;
+      }
+      return true;
+    }
+
+    function isRecordExpired(row) {
+      if (!row.AL) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const end = new Date(row.AL);
+      if (Number.isNaN(end.getTime())) return false;
+      end.setHours(23, 59, 59, 999);
+      return today > end;
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function showToast(msg) {
+      els.toast.textContent = msg;
+      els.toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        els.toast.classList.add('hidden');
+      }, 2800);
+    }
+
+    // =========================================================================
+    // GESTIONE STATO UI & ERRORI
+    // =========================================================================
+
+    function setConnectionStatus(mode, label) {
+      els.connectionText.textContent = label;
+      els.connectionBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border';
+      els.connectionDot.className = 'w-2 h-2 rounded-full';
+
+      if (mode === 'connected') {
+        els.connectionBadge.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+        els.connectionDot.classList.add('bg-emerald-500');
+      } else if (mode === 'demo') {
+        els.connectionBadge.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
+        els.connectionDot.classList.add('bg-amber-500');
+      } else if (mode === 'error') {
+        els.connectionBadge.classList.add('bg-rose-50', 'text-rose-700', 'border-rose-200');
+        els.connectionDot.classList.add('bg-rose-500');
+      } else {
+        els.connectionBadge.classList.add('bg-slate-100', 'text-slate-600', 'border-slate-200');
+        els.connectionDot.classList.add('bg-slate-400');
+      }
+    }
+
+    function showError(title, message, showSqlHint = false) {
+      els.errorTitle.textContent = title;
+      els.errorMessage.textContent = message;
+      els.errorBox.classList.remove('hidden');
+      if (showSqlHint) {
+        els.sqlHintContainer.classList.remove('hidden');
+      } else {
+        els.sqlHintContainer.classList.add('hidden');
+      }
+    }
+
+    function hideError() {
+      els.errorBox.classList.add('hidden');
+      els.sqlHintContainer.classList.add('hidden');
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        els.loadingState.classList.remove('hidden');
+        els.emptyState.classList.add('hidden');
+        els.tableWrapper.classList.add('hidden');
+      } else {
+        els.loadingState.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // CHIAMATE REST A SUPABASE (POSTGREST)
+    // =========================================================================
+
+    async function fetchFromSupabase() {
+      const baseUrl = normalizeSupabaseBaseUrl(els.supabaseUrl.value);
+      const apiKey = els.supabaseKey.value.trim();
+
+      if (!baseUrl || !apiKey) {
+        showError('Dati mancanti', 'Inserisci sia l’URL del progetto Supabase sia la Anon Public Key.');
+        return;
+      }
+
+      els.supabaseUrl.value = baseUrl;
+
+      try {
+        localStorage.setItem(STORAGE_KEY_URL, baseUrl);
+        localStorage.setItem(STORAGE_KEY_ANON, apiKey);
+      } catch (e) {
+        // Ignora eventuali restrizioni storage in iframe
+      }
+
+      hideError();
+      setLoading(true);
+      state.isDemo = false;
+
+      const headers = {
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      };
+
+      try {
+        // 1. Carica l'elenco completo dei reparti da CICC_Tbl_Impostazioni_Reparto
+        const deptUrl = `${baseUrl}/rest/v1/CICC_Tbl_Impostazioni_Reparto?select=*&order=ID.asc`;
+        const deptRes = await fetch(deptUrl, { headers });
+
+        if (!deptRes.ok) {
+          const errBody = await deptRes.json().catch(() => ({}));
+          throw { status: deptRes.status, body: errBody, table: 'CICC_Tbl_Impostazioni_Reparto' };
+        }
+        const departments = await deptRes.json();
+
+        // 2. Carica i dipendenti con JOIN automatico sulle due Foreign Key create:
+        //    - CICC_Tbl_Dati_Archivio_anagrafico(*)
+        //    - CICC_Tbl_Impostazioni_Reparto(*)
+        const empSelect = encodeURIComponent('*,CICC_Tbl_Dati_Archivio_anagrafico(*),CICC_Tbl_Impostazioni_Reparto(*)');
+        const empUrl = `${baseUrl}/rest/v1/CICC_Tbl_Dati_Dipendente?select=${empSelect}&order=IDDipendente.asc`;
+        const empRes = await fetch(empUrl, { headers });
+
+        if (!empRes.ok) {
+          const errBody = await empRes.json().catch(() => ({}));
+          throw { status: empRes.status, body: errBody, table: 'CICC_Tbl_Dati_Dipendente' };
+        }
+        const employees = await empRes.json();
+
+        state.departments = Array.isArray(departments) ? departments : [];
+        state.employees = Array.isArray(employees) ? employees : [];
+
+        populateDepartmentDropdown();
+        renderDashboard();
+        setConnectionStatus('connected', 'Connesso a Supabase');
+        els.configPanel.classList.add('hidden');
+        showToast(`Caricati ${state.employees.length} dipendenti e ${state.departments.length} reparti`);
+
+      } catch (err) {
+        setLoading(false);
+        setConnectionStatus('error', 'Errore connessione');
+        els.configPanel.classList.remove('hidden');
+
+        const code = err?.body?.code || '';
+        const msg = err?.body?.message || err?.message || 'Errore sconosciuto durante la chiamata REST.';
+        const isPermissionError = err?.status === 401 || err?.status === 403 || code === '42501' || msg.toLowerCase().includes('permission denied');
+
+        showError(
+          `Errore Supabase (${err?.status || 'Rete'}) su ${err?.table || 'REST API'}`,
+          `${msg}${code ? ` [Codice: ${code}]` : ''}`,
+          isPermissionError
+        );
+
+        renderDashboard();
+      }
+    }
+
+    // =========================================================================
+    // MODALITÀ DATI DEMO (PER TEST IMMEDIATO INTERFACCIA)
+    // =========================================================================
+
+    function loadDemoData() {
+      hideError();
+      state.isDemo = true;
+
+      state.departments = [
+        { ID: 1, Reparto: 'Produzione Linea A', Contatore: 'PRD-A' },
+        { ID: 2, Reparto: 'Logistica e Magazzino', Contatore: 'LOG-01' },
+        { ID: 3, Reparto: 'Controllo Qualità', Contatore: 'QA-02' },
+        { ID: 4, Reparto: 'Manutenzione Impianti', Contatore: 'MNT-01' }
+      ];
+
+      state.employees = [
+        {
+          IDDipendente: 101,
+          IDReparto: 1,
+          IDArchivio: 50101,
+          Turnazione: 1,
+          DA: '2025-01-10T00:00:00',
+          AL: '2027-12-31T00:00:00',
+          Note: 'Capoturno Linea A - Abilitato carrello elevatore e conduzione presse.',
+          Visibile: 1,
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50101, Cognome: 'Rossi', Nome: 'Marco', Matricola: 'MAT-104' },
+          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A' }
+        },
+        {
+          IDDipendente: 102,
+          IDReparto: 1,
+          IDArchivio: 50102,
+          Turnazione: 2,
+          DA: '2025-03-01T00:00:00',
+          AL: null,
+          Note: 'Assegnazione permanente secondo turno.',
+          Visibile: 1,
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50102, Cognome: 'Bianchi', Nome: 'Elena', Matricola: 'MAT-118' },
+          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A' }
+        },
+        {
+          IDDipendente: 103,
+          IDReparto: 2,
+          IDArchivio: 50108,
+          Turnazione: 1,
+          DA: '2025-02-15T00:00:00',
+          AL: '2026-11-30T00:00:00',
+          Note: 'Gestione spedizioni e ricevimento merci.',
+          Visibile: 1,
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50108, Cognome: 'Furlan', Nome: 'Luca', Matricola: 'MAT-209' },
+          CICC_Tbl_Impostazioni_Reparto: { ID: 2, Reparto: 'Logistica e Magazzino' }
+        },
+        {
+          IDDipendente: 104,
+          IDReparto: 3,
+          IDArchivio: 50115,
+          Turnazione: 3,
+          DA: '2024-09-01T00:00:00',
+          AL: '2025-06-30T00:00:00',
+          Note: 'Contratto a termine concluso, archiviato.',
+          Visibile: 0,
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50115, Cognome: 'Zanetti', Nome: 'Chiara', Matricola: 'MAT-087' },
+          CICC_Tbl_Impostazioni_Reparto: { ID: 3, Reparto: 'Controllo Qualità' }
+        },
+        {
+          IDDipendente: 105,
+          IDReparto: 4,
+          IDArchivio: 50122,
+          Turnazione: 1,
+          DA: '2025-01-01T00:00:00',
+          AL: null,
+          Note: 'Reperibilità fine settimana su impianti elettrici e pneumatici.',
+          Visibile: 1,
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50122, Cognome: 'De Luca', Nome: 'Andrea', Matricola: 'MAT-052' },
+          CICC_Tbl_Impostazioni_Reparto: { ID: 4, Reparto: 'Manutenzione Impianti' }
+        }
+      ];
+
+      populateDepartmentDropdown();
+      renderDashboard();
+      setConnectionStatus('demo', 'Modalità Demo attiva');
+      showToast('Dati demo caricati');
+    }
+
+    // =========================================================================
+    // POPOLAMENTO FILTRI & RENDERING TABELLA
+    // =========================================================================
+
+    function populateDepartmentDropdown() {
+      const currentVal = els.departmentSelect.value;
+      els.departmentSelect.innerHTML = '<option value="ALL">Tutti i reparti (' + state.departments.length + ')</option>';
+
+      const countsByDept = {};
+      for (const emp of state.employees) {
+        if (emp.IDReparto !== null && emp.IDReparto !== undefined) {
+          countsByDept[emp.IDReparto] = (countsByDept[emp.IDReparto] || 0) + 1;
+        }
+      }
+
+      const sortedDepts = [...state.departments].sort((a, b) =>
+        getDepartmentLabel(a, a.ID).localeCompare(getDepartmentLabel(b, b.ID), 'it')
+      );
+
+      for (const dept of sortedDepts) {
+        const opt = document.createElement('option');
+        opt.value = String(dept.ID);
+        const count = countsByDept[dept.ID] || 0;
+        opt.textContent = `${getDepartmentLabel(dept, dept.ID)} (${count})`;
+        els.departmentSelect.appendChild(opt);
+      }
+
+      const unassignedCount = state.employees.filter(e => e.IDReparto === null || e.IDReparto === undefined).length;
+      if (unassignedCount > 0) {
+        const optNone = document.createElement('option');
+        optNone.value = 'NONE';
+        optNone.textContent = `Senza reparto assegnato (${unassignedCount})`;
+        els.departmentSelect.appendChild(optNone);
+      }
+
+      if ([...els.departmentSelect.options].some(o => o.value === currentVal)) {
+        els.departmentSelect.value = currentVal;
+      }
+    }
+
+    function getFilteredEmployees() {
+      const selectedDept = els.departmentSelect.value;
+      const query = els.searchInput.value.trim().toLowerCase();
+      const visibility = els.visibilityFilter.value;
+      const period = els.periodFilter.value;
+
+      return state.employees.filter(row => {
+        if (selectedDept === 'NONE') {
+          if (row.IDReparto !== null && row.IDReparto !== undefined) return false;
+        } else if (selectedDept !== 'ALL') {
+          if (String(row.IDReparto) !== selectedDept) return false;
+        }
+
+        const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
+        if (visibility === 'VISIBLE' && !isVis) return false;
+        if (visibility === 'HIDDEN' && isVis) return false;
+
+        if (period === 'ACTIVE' && !isRecordActiveToday(row)) return false;
+        if (period === 'EXPIRED' && !isRecordExpired(row)) return false;
+
+        if (query) {
+          const empInfo = getEmployeeDisplayInfo(row);
+          const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
+          const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
+
+          const haystack = [
+            empInfo.fullName,
+            empInfo.subtitle,
+            deptLabel,
+            row.Note || '',
+            String(row.IDDipendente || ''),
+            String(row.IDArchivio || '')
+          ].join(' ').toLowerCase();
+
+          if (!haystack.includes(query)) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function renderDashboard() {
+      setLoading(false);
+
+      const filtered = getFilteredEmployees();
+      const activeTodayCount = filtered.filter(isRecordActiveToday).length;
+
+      els.kpiFiltered.textContent = filtered.length;
+      els.kpiFilteredSub.textContent = `Su ${state.employees.length} totali caricati`;
+      els.kpiActiveToday.textContent = activeTodayCount;
+      els.kpiDepartments.textContent = state.departments.length;
+
+      const selectedOptionText = els.departmentSelect.options[els.departmentSelect.selectedIndex]?.text || 'Tutti i reparti';
+      els.kpiSelectedDept.textContent = selectedOptionText;
+
+      const activeFilters = [];
+      if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
+      if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
+      if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
+      if (els.periodFilter.value === 'ACTIVE') activeFilters.push('Attivi oggi');
+      if (els.periodFilter.value === 'EXPIRED') activeFilters.push('Scaduti');
+      if (els.searchInput.value.trim()) activeFilters.push(`Ricerca: "${els.searchInput.value.trim()}"`);
+
+      els.activeFilterSummary.textContent = activeFilters.length > 0
+        ? `Filtri attivi: ${activeFilters.join(' • ')}`
+        : 'Mostra tutti i record caricati';
+
+      if (state.employees.length === 0) {
+        els.tableWrapper.classList.add('hidden');
+        els.emptyState.classList.remove('hidden');
+        els.emptyTitle.textContent = 'Nessun dato caricato';
+        els.emptySubtitle.innerHTML = 'Inserisci la tua <strong>Anon Key</strong> di Supabase e clicca su <strong>Carica Dati</strong>, oppure prova con i <strong>Dati Demo</strong>.';
+        return;
+      }
+
+      if (filtered.length === 0) {
+        els.tableWrapper.classList.add('hidden');
+        els.emptyState.classList.remove('hidden');
+        els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
+        els.emptySubtitle.textContent = 'Prova a cambiare reparto, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        return;
+      }
+
+      els.emptyState.classList.add('hidden');
+      els.tableWrapper.classList.remove('hidden');
+
+      els.employeesTableBody.innerHTML = filtered.map(row => {
+        const empInfo = getEmployeeDisplayInfo(row);
+        const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
+        const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
+
+        const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
+        const activeToday = isRecordActiveToday(row);
+        const expired = isRecordExpired(row);
+
+        const turnazioneBadge = (row.Turnazione !== null && row.Turnazione !== undefined)
+          ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">Turno ${escapeHtml(row.Turnazione)}</span>`
+          : `<span class="text-xs text-slate-400">—</span>`;
+
+        const statusBadge = isVis
+          ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Visibile</span>`
+          : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Nascosto</span>`;
+
+        let periodBadge = '';
+        if (expired) {
+          periodBadge = `<span class="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-600">Scaduto</span>`;
+        } else if (activeToday && (row.DA || row.AL)) {
+          periodBadge = `<span class="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-600">Attivo</span>`;
+        }
+
+        const noteText = row.Note ? String(row.Note).trim() : '';
+        const noteCell = noteText
+          ? `<div class="max-w-xs truncate text-slate-600" title="${escapeHtml(noteText)}">${escapeHtml(noteText)}</div>`
+          : `<span class="text-slate-400 text-xs italic">Nessuna nota</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50/90 transition cursor-pointer" data-id="${escapeHtml(row.IDDipendente)}">
+            <td class="px-5 py-3.5 whitespace-nowrap">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center shrink-0">
+                  ${escapeHtml(empInfo.initials)}
+                </div>
+                <div>
+                  <div class="font-semibold text-slate-900">${escapeHtml(empInfo.fullName)}</div>
+                  <div class="text-xs text-slate-500">${escapeHtml(empInfo.subtitle)}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-3.5 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                ${escapeHtml(deptLabel)}
+              </span>
+            </td>
+            <td class="px-5 py-3.5 whitespace-nowrap">
+              ${turnazioneBadge}
+            </td>
+            <td class="px-5 py-3.5 whitespace-nowrap text-xs text-slate-700">
+              <span>${formatDateIT(row.DA)}</span>
+              <span class="text-slate-400 mx-1">→</span>
+              <span>${formatDateIT(row.AL)}</span>
+              ${periodBadge}
+            </td>
+            <td class="px-5 py-3.5 whitespace-nowrap">
+              ${statusBadge}
+            </td>
+            <td class="px-5 py-3.5 text-xs">
+              ${noteCell}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // MODALE DETTAGLIO RIGA
+    // =========================================================================
+
+    function openDetailModal(idDipendente) {
+      const row = state.employees.find(e => String(e.IDDipendente) === String(idDipendente));
+      if (!row) return;
+
+      const empInfo = getEmployeeDisplayInfo(row);
+      const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
+      const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
+      const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
+
+      document.getElementById('modalDeptBadge').textContent = deptLabel;
+      document.getElementById('modalEmployeeName').textContent = empInfo.fullName;
+      document.getElementById('modalEmployeeIds').textContent = `ID Dipendente: ${row.IDDipendente} • ${empInfo.subtitle}`;
+      document.getElementById('modalDateFrom').textContent = formatDateIT(row.DA);
+      document.getElementById('modalDateTo').textContent = formatDateIT(row.AL);
+      document.getElementById('modalShift').textContent = row.Turnazione !== null && row.Turnazione !== undefined ? `Turno ${row.Turnazione}` : 'Non specificata';
+      document.getElementById('modalVisibility').textContent = isVis ? 'Visibile' : 'Nascosto';
+      document.getElementById('modalNotes').textContent = row.Note && String(row.Note).trim() ? String(row.Note).trim() : 'Nessuna nota inserita.';
+
+      els.detailModal.classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      els.detailModal.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & INIZIALIZZAZIONE
+    // =========================================================================
+
+    els.toggleConfigBtn.addEventListener('click', () => {
+      els.configPanel.classList.toggle('hidden');
+    });
+
+    els.toggleKeyVisibility.addEventListener('click', () => {
+      els.supabaseKey.type = els.supabaseKey.type === 'password' ? 'text' : 'password';
+    });
+
+    els.configForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      fetchFromSupabase();
+    });
+
+    els.loadDemoBtn.addEventListener('click', () => {
+      loadDemoData();
+    });
+
+    els.departmentSelect.addEventListener('change', renderDashboard);
+    els.searchInput.addEventListener('input', renderDashboard);
+    els.visibilityFilter.addEventListener('change', renderDashboard);
+    els.periodFilter.addEventListener('change', renderDashboard);
+
+    els.resetFiltersBtn.addEventListener('click', () => {
+      els.departmentSelect.value = 'ALL';
+      els.searchInput.value = '';
+      els.visibilityFilter.value = 'VISIBLE';
+      els.periodFilter.value = 'ALL';
+      renderDashboard();
+    });
+
+    els.refreshDataBtn.addEventListener('click', () => {
+      if (state.isDemo) {
+        loadDemoData();
+      } else {
+        fetchFromSupabase();
+      }
+    });
+
+    els.employeesTableBody.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr[data-id]');
+      if (tr) {
+        openDetailModal(tr.dataset.id);
+      }
+    });
+
+    els.closeModalBtn.addEventListener('click', closeDetailModal);
+    els.closeModalFooterBtn.addEventListener('click', closeDetailModal);
+    els.detailModal.addEventListener('click', (e) => {
+      if (e.target === els.detailModal) closeDetailModal();
+    });
+
+    els.copySqlBtn.addEventListener('click', () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = els.sqlHintCode.textContent;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      showToast('Comando SQL copiato negli appunti');
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const savedUrl = localStorage.getItem(STORAGE_KEY_URL);
+        const savedKey = localStorage.getItem(STORAGE_KEY_ANON);
+        if (savedUrl) els.supabaseUrl.value = normalizeSupabaseBaseUrl(savedUrl);
+        if (savedKey) {
+          els.supabaseKey.value = savedKey;
+          fetchFromSupabase();
+        }
+      } catch (e) {
+        // Ignora eventuali errori di accesso a localStorage
+      }
+    });
+  </script>
+</body>
+</html>
