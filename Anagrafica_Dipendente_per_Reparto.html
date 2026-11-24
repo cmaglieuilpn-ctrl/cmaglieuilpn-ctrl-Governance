@@ -191,11 +191,11 @@
       </div>
     </section>
 
-    <!-- Barra Filtri Principale (Ordine: 1. IDPiattaforma, 2. Seleziona Reparto, 3. Ricerca, 4. Visibilità, 5. Mese / Anno) -->
+    <!-- Barra Filtri Principale -->
     <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
         <!-- 1. Filtro IDPiattaforma (da tabella reparto) -->
-        <div class="md:col-span-2">
+        <div class="lg:col-span-2">
           <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             IDPiattaforma
           </label>
@@ -205,35 +205,35 @@
         </div>
 
         <!-- 2. Filtro Reparto -->
-        <div class="md:col-span-3">
+        <div class="lg:col-span-2">
           <label for="departmentSelect" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Seleziona Reparto
           </label>
-          <select id="departmentSelect" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+          <select id="departmentSelect" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
             <option value="ALL">Tutti i reparti</option>
           </select>
         </div>
 
         <!-- 3. Ricerca Testuale -->
-        <div class="md:col-span-3">
+        <div class="lg:col-span-2">
           <label for="searchInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-            Cerca Dipendente o Note
+            Cerca Dipendente / Note
           </label>
           <div class="relative">
-            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               type="text"
               id="searchInput"
-              placeholder="Cognome, nome, ID archivio, note..."
-              class="w-full rounded-xl border border-slate-300 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              placeholder="Nome, ID, note..."
+              class="w-full rounded-xl border border-slate-300 pl-9 pr-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
         </div>
 
         <!-- 4. Filtro Visibilità -->
-        <div class="md:col-span-2">
+        <div class="lg:col-span-2">
           <label for="visibilityFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Visibilità
           </label>
@@ -244,8 +244,20 @@
           </select>
         </div>
 
-        <!-- 5. Filtro Periodo (Mese e Anno) -->
-        <div class="md:col-span-2">
+        <!-- 5. Filtro Attivo / Non attivo -->
+        <div class="lg:col-span-2">
+          <label for="activeStatusFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Stato Periodo
+          </label>
+          <select id="activeStatusFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL" selected>Tutti (Attivi e Non)</option>
+            <option value="ACTIVE">Attivo</option>
+            <option value="INACTIVE">Non attivo</option>
+          </select>
+        </div>
+
+        <!-- 6. Filtro Periodo (Mese e Anno) -->
+        <div class="lg:col-span-2">
           <label for="monthYearFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Mese / Anno
           </label>
@@ -262,6 +274,9 @@
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
         <div id="activeFilterSummary">Nessun filtro attivo</div>
         <div class="flex items-center gap-3">
+          <button type="button" id="resetSortBtn" class="text-slate-600 hover:text-slate-900 font-medium hover:underline cursor-pointer">
+            Azzera ordinamento
+          </button>
           <button type="button" id="resetFiltersBtn" class="text-brand-600 hover:text-brand-700 font-medium hover:underline cursor-pointer">
             Reimposta filtri
           </button>
@@ -299,14 +314,44 @@
       <!-- Contenitore Tabella Responsiva -->
       <div id="tableWrapper" class="hidden overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-left">
-          <thead class="bg-slate-50/80">
+          <thead class="bg-slate-50/80 select-none">
             <tr>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Dipendente</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Reparto</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Turnazione</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Periodo (DA - AL)</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Stato</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">Note</th>
+              <th scope="col" data-sort-col="employee" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Dipendente</span>
+                  <span data-sort-indicator="employee" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
+              <th scope="col" data-sort-col="department" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Reparto</span>
+                  <span data-sort-indicator="department" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
+              <th scope="col" data-sort-col="shift" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Turnazione</span>
+                  <span data-sort-indicator="shift" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
+              <th scope="col" data-sort-col="period" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Periodo (DA - AL)</span>
+                  <span data-sort-indicator="period" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
+              <th scope="col" data-sort-col="status" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Stato</span>
+                  <span data-sort-indicator="status" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
+              <th scope="col" data-sort-col="notes" title="Clicca per ordinare (Crescente / Decrescente)" class="px-5 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100/80 transition group">
+                <div class="inline-flex items-center gap-1.5">
+                  <span>Note</span>
+                  <span data-sort-indicator="notes" class="text-slate-400 group-hover:text-slate-700 font-bold">⇅</span>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody id="employeesTableBody" class="divide-y divide-slate-100 bg-white text-sm">
@@ -387,6 +432,8 @@
     const state = {
       departments: [],     // Record da CICC_Tbl_Impostazioni_Reparto
       employees: [],       // Record da CICC_Tbl_Dati_Dipendente + relazioni
+      sortCol: null,       // 'employee' | 'department' | 'shift' | 'period' | 'status' | 'notes' | null
+      sortDir: 'asc',      // 'asc' | 'desc'
       isDemo: false
     };
 
@@ -417,8 +464,10 @@
       departmentSelect: document.getElementById('departmentSelect'),
       searchInput: document.getElementById('searchInput'),
       visibilityFilter: document.getElementById('visibilityFilter'),
+      activeStatusFilter: document.getElementById('activeStatusFilter'),
       monthYearFilter: document.getElementById('monthYearFilter'),
       activeFilterSummary: document.getElementById('activeFilterSummary'),
+      resetSortBtn: document.getElementById('resetSortBtn'),
       resetFiltersBtn: document.getElementById('resetFiltersBtn'),
       refreshDataBtn: document.getElementById('refreshDataBtn'),
       loadingState: document.getElementById('loadingState'),
@@ -624,6 +673,92 @@
       showToast._timer = setTimeout(() => {
         els.toast.classList.add('hidden');
       }, 2800);
+    }
+
+    // =========================================================================
+    // ORDINAMENTO COLONNE (CRESCENTE / DECRESCENTE)
+    // =========================================================================
+
+    function getSortValue(row, colKey) {
+      switch (colKey) {
+        case 'employee':
+          return getEmployeeDisplayInfo(row).fullName.toLowerCase();
+        case 'department': {
+          const deptObj = resolveDepartmentObj(row);
+          return getDepartmentLabel(deptObj, row.IDReparto).toLowerCase();
+        }
+        case 'shift': {
+          const t = row.Turnazione;
+          if (t === null || t === undefined || String(t).trim() === '') return null;
+          const num = Number(t);
+          return Number.isNaN(num) ? String(t).toLowerCase() : num;
+        }
+        case 'period': {
+          if (!row.DA) return null;
+          const ts = new Date(row.DA).getTime();
+          return Number.isNaN(ts) ? String(row.DA) : ts;
+        }
+        case 'status': {
+          const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
+          return isVis ? 1 : 0;
+        }
+        case 'notes':
+          return row.Note ? String(row.Note).trim().toLowerCase() : '';
+        default:
+          return '';
+      }
+    }
+
+    function sortEmployeesList(list) {
+      if (!state.sortCol) return list;
+
+      const factor = state.sortDir === 'asc' ? 1 : -1;
+
+      return [...list].sort((a, b) => {
+        const valA = getSortValue(a, state.sortCol);
+        const valB = getSortValue(b, state.sortCol);
+
+        const emptyA = valA === null || valA === undefined || valA === '';
+        const emptyB = valB === null || valB === undefined || valB === '';
+
+        if (emptyA && emptyB) return 0;
+        if (emptyA) return 1;
+        if (emptyB) return -1;
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * factor;
+        }
+
+        return String(valA).localeCompare(String(valB), 'it', { numeric: true }) * factor;
+      });
+    }
+
+    function handleColumnSort(colKey) {
+      if (state.sortCol !== colKey) {
+        state.sortCol = colKey;
+        state.sortDir = 'asc';
+      } else if (state.sortDir === 'asc') {
+        state.sortDir = 'desc';
+      } else {
+        state.sortCol = null;
+        state.sortDir = 'asc';
+      }
+      updateSortIndicators();
+      renderDashboard();
+    }
+
+    function updateSortIndicators() {
+      const indicators = document.querySelectorAll('[data-sort-indicator]');
+      indicators.forEach(el => {
+        const col = el.getAttribute('data-sort-indicator');
+        if (col === state.sortCol) {
+          el.textContent = state.sortDir === 'asc' ? '↑' : '↓';
+          el.className = 'text-brand-600 font-bold';
+        } else {
+          el.textContent = '⇅';
+          el.className = 'text-slate-400 group-hover:text-slate-700 font-bold';
+        }
+      });
     }
 
     // =========================================================================
@@ -896,10 +1031,6 @@
     // POPOLAMENTO FILTRI & RENDERING TABELLA
     // =========================================================================
 
-    /**
-     * Popola la tendina IDPiattaforma leggendo IDPiattaforma dalla tabella dei reparti
-     * (CICC_Tbl_Impostazioni_Reparto), conteggiando i reparti associati a ciascun valore.
-     */
     function populatePlatformDropdown() {
       const currentVal = els.platformFilter.value;
       els.platformFilter.innerHTML = '<option value="ALL">Tutte le piattaforme</option>';
@@ -996,9 +1127,10 @@
       const selectedDept = els.departmentSelect.value;
       const query = els.searchInput.value.trim().toLowerCase();
       const visibility = els.visibilityFilter.value;
+      const activeStatus = els.activeStatusFilter.value;
       const selectedMonthYear = els.monthYearFilter.value;
 
-      return state.employees.filter(row => {
+      const filtered = state.employees.filter(row => {
         const deptObj = resolveDepartmentObj(row);
         const deptPlatform = getDepartmentPlatformValue(deptObj);
 
@@ -1017,6 +1149,10 @@
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
         if (visibility === 'VISIBLE' && !isVis) return false;
         if (visibility === 'HIDDEN' && isVis) return false;
+
+        const isActive = isRecordActiveToday(row);
+        if (activeStatus === 'ACTIVE' && !isActive) return false;
+        if (activeStatus === 'INACTIVE' && isActive) return false;
 
         if (selectedMonthYear && !isRecordActiveInMonth(row, selectedMonthYear)) {
           return false;
@@ -1041,6 +1177,8 @@
 
         return true;
       });
+
+      return sortEmployeesList(filtered);
     }
 
     function renderDashboard() {
@@ -1065,12 +1203,26 @@
       if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
       if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
       if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
+      if (els.activeStatusFilter.value === 'ACTIVE') activeFilters.push('Stato: Attivo');
+      if (els.activeStatusFilter.value === 'INACTIVE') activeFilters.push('Stato: Non attivo');
       if (els.monthYearFilter.value) activeFilters.push(`Periodo: ${formatMonthYearIT(els.monthYearFilter.value)}`);
       if (els.searchInput.value.trim()) activeFilters.push(`Ricerca: "${els.searchInput.value.trim()}"`);
 
-      els.activeFilterSummary.textContent = activeFilters.length > 0
+      const sortLabelMap = {
+        employee: 'Dipendente',
+        department: 'Reparto',
+        shift: 'Turnazione',
+        period: 'Periodo (DA - AL)',
+        status: 'Stato',
+        notes: 'Note'
+      };
+      const sortSummary = state.sortCol
+        ? ` • Ordinamento: ${sortLabelMap[state.sortCol] || state.sortCol} (${state.sortDir === 'asc' ? 'Crescente' : 'Decrescente'})`
+        : '';
+
+      els.activeFilterSummary.textContent = (activeFilters.length > 0
         ? `Filtri attivi: ${activeFilters.join(' • ')}`
-        : 'Mostra tutti i record caricati';
+        : 'Mostra tutti i record caricati') + sortSummary;
 
       if (state.employees.length === 0) {
         els.tableWrapper.classList.add('hidden');
@@ -1084,7 +1236,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
-        els.emptySubtitle.textContent = 'Prova a cambiare IDPiattaforma, reparto, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        els.emptySubtitle.textContent = 'Prova a cambiare IDPiattaforma, reparto, stato periodo, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
         return;
       }
 
@@ -1114,10 +1266,10 @@
           : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Nascosto</span>`;
 
         let periodBadge = '';
-        if (expired) {
-          periodBadge = `<span class="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-600">Scaduto</span>`;
-        } else if (activeToday && (row.DA || row.AL)) {
+        if (activeToday && (row.DA || row.AL)) {
           periodBadge = `<span class="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-600">Attivo</span>`;
+        } else if (!activeToday) {
+          periodBadge = `<span class="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-600">${expired ? 'Scaduto' : 'Non attivo'}</span>`;
         }
 
         const noteText = row.Note ? String(row.Note).trim() : '';
@@ -1198,6 +1350,20 @@
     // EVENT LISTENERS & INIZIALIZZAZIONE AUTOMATICA
     // =========================================================================
 
+    document.querySelectorAll('th[data-sort-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.getAttribute('data-sort-col');
+        if (col) handleColumnSort(col);
+      });
+    });
+
+    els.resetSortBtn.addEventListener('click', () => {
+      state.sortCol = null;
+      state.sortDir = 'asc';
+      updateSortIndicators();
+      renderDashboard();
+    });
+
     els.toggleConfigBtn.addEventListener('click', () => {
       els.configPanel.classList.toggle('hidden');
     });
@@ -1222,6 +1388,7 @@
     els.departmentSelect.addEventListener('change', renderDashboard);
     els.searchInput.addEventListener('input', renderDashboard);
     els.visibilityFilter.addEventListener('change', renderDashboard);
+    els.activeStatusFilter.addEventListener('change', renderDashboard);
     els.monthYearFilter.addEventListener('change', renderDashboard);
 
     els.resetFiltersBtn.addEventListener('click', () => {
@@ -1230,6 +1397,7 @@
       els.departmentSelect.value = 'ALL';
       els.searchInput.value = '';
       els.visibilityFilter.value = 'VISIBLE';
+      els.activeStatusFilter.value = 'ALL';
       els.monthYearFilter.value = '';
       renderDashboard();
     });
