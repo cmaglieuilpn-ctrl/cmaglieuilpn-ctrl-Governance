@@ -191,10 +191,20 @@
       </div>
     </section>
 
-    <!-- Barra Filtri Principale -->
+    <!-- Barra Filtri Principale (Ordine: 1. IDPiattaforma, 2. Seleziona Reparto, 3. Ricerca, 4. Visibilità, 5. Mese / Anno) -->
     <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        <!-- Filtro Reparto -->
+        <!-- 1. Filtro IDPiattaforma (da tabella reparto) -->
+        <div class="md:col-span-2">
+          <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            IDPiattaforma
+          </label>
+          <select id="platformFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Tutte le piattaforme</option>
+          </select>
+        </div>
+
+        <!-- 2. Filtro Reparto -->
         <div class="md:col-span-3">
           <label for="departmentSelect" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Seleziona Reparto
@@ -204,7 +214,7 @@
           </select>
         </div>
 
-        <!-- Ricerca Testuale -->
+        <!-- 3. Ricerca Testuale -->
         <div class="md:col-span-3">
           <label for="searchInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Cerca Dipendente o Note
@@ -222,17 +232,7 @@
           </div>
         </div>
 
-        <!-- Filtro IDPiattaforma (da tabella reparto) -->
-        <div class="md:col-span-2">
-          <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-            IDPiattaforma
-          </label>
-          <select id="platformFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="ALL">Tutte le piattaforme</option>
-          </select>
-        </div>
-
-        <!-- Filtro Visibilità -->
+        <!-- 4. Filtro Visibilità -->
         <div class="md:col-span-2">
           <label for="visibilityFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Visibilità
@@ -244,7 +244,7 @@
           </select>
         </div>
 
-        <!-- Filtro Periodo (Mese e Anno) -->
+        <!-- 5. Filtro Periodo (Mese e Anno) -->
         <div class="md:col-span-2">
           <label for="monthYearFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Mese / Anno
@@ -413,9 +413,9 @@
       kpiActiveToday: document.getElementById('kpiActiveToday'),
       kpiDepartments: document.getElementById('kpiDepartments'),
       kpiSelectedDept: document.getElementById('kpiSelectedDept'),
+      platformFilter: document.getElementById('platformFilter'),
       departmentSelect: document.getElementById('departmentSelect'),
       searchInput: document.getElementById('searchInput'),
-      platformFilter: document.getElementById('platformFilter'),
       visibilityFilter: document.getElementById('visibilityFilter'),
       monthYearFilter: document.getElementById('monthYearFilter'),
       activeFilterSummary: document.getElementById('activeFilterSummary'),
@@ -781,8 +781,8 @@
         state.departments = departments;
         state.employees = employees;
 
-        populateDepartmentDropdown();
         populatePlatformDropdown();
+        populateDepartmentDropdown();
         renderDashboard();
         setConnectionStatus('connected', `Connesso • ${state.employees.length} record`);
         els.configPanel.classList.add('hidden');
@@ -885,8 +885,8 @@
         }
       ];
 
-      populateDepartmentDropdown();
       populatePlatformDropdown();
+      populateDepartmentDropdown();
       renderDashboard();
       setConnectionStatus('demo', 'Modalità Demo attiva');
       showToast('Dati demo caricati');
@@ -895,42 +895,6 @@
     // =========================================================================
     // POPOLAMENTO FILTRI & RENDERING TABELLA
     // =========================================================================
-
-    function populateDepartmentDropdown() {
-      const currentVal = els.departmentSelect.value;
-      els.departmentSelect.innerHTML = '<option value="ALL">Tutti i reparti (' + state.departments.length + ')</option>';
-
-      const countsByDept = {};
-      for (const emp of state.employees) {
-        if (emp.IDReparto !== null && emp.IDReparto !== undefined) {
-          countsByDept[emp.IDReparto] = (countsByDept[emp.IDReparto] || 0) + 1;
-        }
-      }
-
-      const sortedDepts = [...state.departments].sort((a, b) =>
-        getDepartmentLabel(a, a.ID).localeCompare(getDepartmentLabel(b, b.ID), 'it')
-      );
-
-      for (const dept of sortedDepts) {
-        const opt = document.createElement('option');
-        opt.value = String(dept.ID);
-        const count = countsByDept[dept.ID] || 0;
-        opt.textContent = `${getDepartmentLabel(dept, dept.ID)} (${count})`;
-        els.departmentSelect.appendChild(opt);
-      }
-
-      const unassignedCount = state.employees.filter(e => e.IDReparto === null || e.IDReparto === undefined).length;
-      if (unassignedCount > 0) {
-        const optNone = document.createElement('option');
-        optNone.value = 'NONE';
-        optNone.textContent = `Senza reparto assegnato (${unassignedCount})`;
-        els.departmentSelect.appendChild(optNone);
-      }
-
-      if ([...els.departmentSelect.options].some(o => o.value === currentVal)) {
-        els.departmentSelect.value = currentVal;
-      }
-    }
 
     /**
      * Popola la tendina IDPiattaforma leggendo IDPiattaforma dalla tabella dei reparti
@@ -980,20 +944,61 @@
       }
     }
 
+    function populateDepartmentDropdown() {
+      const currentVal = els.departmentSelect.value;
+      const selectedPlatform = els.platformFilter ? els.platformFilter.value : 'ALL';
+
+      const visibleDepartments = state.departments.filter(dept => {
+        if (selectedPlatform === 'ALL') return true;
+        const deptPlat = getDepartmentPlatformValue(dept);
+        if (selectedPlatform === 'NONE') return deptPlat === null;
+        return deptPlat === selectedPlatform;
+      });
+
+      els.departmentSelect.innerHTML = '<option value="ALL">Tutti i reparti (' + visibleDepartments.length + ')</option>';
+
+      const countsByDept = {};
+      for (const emp of state.employees) {
+        if (emp.IDReparto !== null && emp.IDReparto !== undefined) {
+          countsByDept[emp.IDReparto] = (countsByDept[emp.IDReparto] || 0) + 1;
+        }
+      }
+
+      const sortedDepts = [...visibleDepartments].sort((a, b) =>
+        getDepartmentLabel(a, a.ID).localeCompare(getDepartmentLabel(b, b.ID), 'it')
+      );
+
+      for (const dept of sortedDepts) {
+        const opt = document.createElement('option');
+        opt.value = String(dept.ID);
+        const count = countsByDept[dept.ID] || 0;
+        opt.textContent = `${getDepartmentLabel(dept, dept.ID)} (${count})`;
+        els.departmentSelect.appendChild(opt);
+      }
+
+      const unassignedCount = state.employees.filter(e => e.IDReparto === null || e.IDReparto === undefined).length;
+      if (unassignedCount > 0 && selectedPlatform === 'ALL') {
+        const optNone = document.createElement('option');
+        optNone.value = 'NONE';
+        optNone.textContent = `Senza reparto assegnato (${unassignedCount})`;
+        els.departmentSelect.appendChild(optNone);
+      }
+
+      if ([...els.departmentSelect.options].some(o => o.value === currentVal)) {
+        els.departmentSelect.value = currentVal;
+      } else {
+        els.departmentSelect.value = 'ALL';
+      }
+    }
+
     function getFilteredEmployees() {
-      const selectedDept = els.departmentSelect.value;
       const selectedPlatform = els.platformFilter.value;
+      const selectedDept = els.departmentSelect.value;
       const query = els.searchInput.value.trim().toLowerCase();
       const visibility = els.visibilityFilter.value;
       const selectedMonthYear = els.monthYearFilter.value;
 
       return state.employees.filter(row => {
-        if (selectedDept === 'NONE') {
-          if (row.IDReparto !== null && row.IDReparto !== undefined) return false;
-        } else if (selectedDept !== 'ALL') {
-          if (String(row.IDReparto) !== selectedDept) return false;
-        }
-
         const deptObj = resolveDepartmentObj(row);
         const deptPlatform = getDepartmentPlatformValue(deptObj);
 
@@ -1001,6 +1006,12 @@
           if (deptPlatform !== null) return false;
         } else if (selectedPlatform !== 'ALL') {
           if (deptPlatform !== selectedPlatform) return false;
+        }
+
+        if (selectedDept === 'NONE') {
+          if (row.IDReparto !== null && row.IDReparto !== undefined) return false;
+        } else if (selectedDept !== 'ALL') {
+          if (String(row.IDReparto) !== selectedDept) return false;
         }
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
@@ -1047,11 +1058,11 @@
       els.kpiSelectedDept.textContent = selectedOptionText;
 
       const activeFilters = [];
-      if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
       if (els.platformFilter.value !== 'ALL') {
         const platOptionText = els.platformFilter.options[els.platformFilter.selectedIndex]?.text || els.platformFilter.value;
         activeFilters.push(`Piattaforma: ${platOptionText}`);
       }
+      if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
       if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
       if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
       if (els.monthYearFilter.value) activeFilters.push(`Periodo: ${formatMonthYearIT(els.monthYearFilter.value)}`);
@@ -1073,7 +1084,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
-        els.emptySubtitle.textContent = 'Prova a cambiare reparto, IDPiattaforma, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        els.emptySubtitle.textContent = 'Prova a cambiare IDPiattaforma, reparto, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
         return;
       }
 
@@ -1204,15 +1215,19 @@
       loadDemoData();
     });
 
+    els.platformFilter.addEventListener('change', () => {
+      populateDepartmentDropdown();
+      renderDashboard();
+    });
     els.departmentSelect.addEventListener('change', renderDashboard);
-    els.platformFilter.addEventListener('change', renderDashboard);
     els.searchInput.addEventListener('input', renderDashboard);
     els.visibilityFilter.addEventListener('change', renderDashboard);
     els.monthYearFilter.addEventListener('change', renderDashboard);
 
     els.resetFiltersBtn.addEventListener('click', () => {
-      els.departmentSelect.value = 'ALL';
       els.platformFilter.value = 'ALL';
+      populateDepartmentDropdown();
+      els.departmentSelect.value = 'ALL';
       els.searchInput.value = '';
       els.visibilityFilter.value = 'VISIBLE';
       els.monthYearFilter.value = '';
