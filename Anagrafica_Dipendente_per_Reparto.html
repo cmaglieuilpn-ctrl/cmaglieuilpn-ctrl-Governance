@@ -45,7 +45,7 @@
         </div>
         <div>
           <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Anagrafica Dipendenti per Reparto</h1>
-          <p class="text-xs sm:text-sm text-slate-500">Consultazione in tempo reale da PostgreSQL / Supabase</p>
+          <p class="text-xs sm:text-sm text-slate-500">Consultazione integrale da PostgreSQL / Supabase</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
         <!-- Badge Stato Connessione -->
         <span id="connectionBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
           <span id="connectionDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
-          <span id="connectionText">Non connesso</span>
+          <span id="connectionText">Inizializzazione...</span>
         </span>
         <button id="toggleConfigBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-xs transition cursor-pointer">
           <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -69,12 +69,12 @@
   <!-- Contenuto Principale -->
   <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
 
-    <!-- Pannello Configurazione Supabase -->
-    <section id="configPanel" class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all">
+    <!-- Pannello Configurazione Supabase (nascosto di default se credenziali già presenti) -->
+    <section id="configPanel" class="hidden bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div>
           <h2 class="text-base font-semibold text-slate-900">Configurazione Accesso Supabase</h2>
-          <p class="text-xs text-slate-500">I parametri vengono salvati localmente nel tuo browser (<code class="bg-slate-100 px-1 rounded">localStorage</code>).</p>
+          <p class="text-xs text-slate-500">Credenziali incorporate nello script. Puoi sovrascriverle temporaneamente da qui.</p>
         </div>
         <button id="loadDemoBtn" type="button" class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition cursor-pointer">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -92,7 +92,6 @@
             type="url"
             id="supabaseUrl"
             required
-            value="https://iruibthbogiktggdzrjh.supabase.co"
             placeholder="https://xyz.supabase.co"
             class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
@@ -120,7 +119,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Carica Dati
+            Ricarica
           </button>
         </div>
       </form>
@@ -270,7 +269,7 @@
       <!-- Stato caricamento -->
       <div id="loadingState" class="hidden p-12 text-center space-y-3">
         <div class="inline-block w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
-        <p class="text-sm font-medium text-slate-600">Interrogazione tabelle Supabase in corso...</p>
+        <p id="loadingText" class="text-sm font-medium text-slate-600">Interrogazione tabelle Supabase in corso...</p>
       </div>
 
       <!-- Stato vuoto -->
@@ -282,7 +281,7 @@
         </div>
         <h3 id="emptyTitle" class="text-base font-semibold text-slate-900">Nessun dato visualizzato</h3>
         <p id="emptySubtitle" class="text-sm text-slate-500 max-w-md mx-auto">
-          Inserisci la tua <strong>Anon Key</strong> di Supabase qui sopra e clicca su <strong>Carica Dati</strong>, oppure usa <strong>Prova con Dati Demo</strong>.
+          Controlla le credenziali di connessione oppure usa <strong>Prova con Dati Demo</strong>.
         </p>
       </div>
 
@@ -365,8 +364,12 @@
 
   <script>
     // =========================================================================
-    // STATO APPLICATIVO & COSTANTI
+    // CREDENZIALI SUPABASE INCORPORATE
+    // Sostituisci "INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY" con la tua anon key
     // =========================================================================
+    const EMBEDDED_SUPABASE_URL = 'https://iruibthbogiktggdzrjh.supabase.co';
+    const EMBEDDED_SUPABASE_KEY = 'sb_publishable_ZDcIzD4liZx6m3rMrSQdMw_RdKEE4Zy';
+
     const STORAGE_KEY_URL = 'supabase_cicc_url';
     const STORAGE_KEY_ANON = 'supabase_cicc_anon_key';
 
@@ -407,6 +410,7 @@
       resetFiltersBtn: document.getElementById('resetFiltersBtn'),
       refreshDataBtn: document.getElementById('refreshDataBtn'),
       loadingState: document.getElementById('loadingState'),
+      loadingText: document.getElementById('loadingText'),
       emptyState: document.getElementById('emptyState'),
       emptyTitle: document.getElementById('emptyTitle'),
       emptySubtitle: document.getElementById('emptySubtitle'),
@@ -426,10 +430,6 @@
       return String(rawUrl || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
     }
 
-    /**
-     * Ricava il nome del reparto leggendo prioritariamente il campo "Reparto"
-     * di CICC_Tbl_Impostazioni_Reparto, con fallback sugli altri campi.
-     */
     function getDepartmentLabel(deptObj, fallbackId) {
       if (!deptObj && (fallbackId === null || fallbackId === undefined)) {
         return 'Nessun reparto assegnato';
@@ -459,9 +459,6 @@
       return `Reparto #${deptObj.ID ?? fallbackId ?? '?'}`;
     }
 
-    /**
-     * Ricava Nome e Cognome dall'oggetto anagrafico collegato (CICC_Tbl_Dati_Archivio_anagrafico).
-     */
     function getEmployeeDisplayInfo(empRow) {
       const arch = empRow.CICC_Tbl_Dati_Archivio_anagrafico || null;
       const idArch = empRow.IDArchivio;
@@ -599,8 +596,9 @@
       els.sqlHintContainer.classList.add('hidden');
     }
 
-    function setLoading(isLoading) {
+    function setLoading(isLoading, message = 'Interrogazione tabelle Supabase in corso...') {
       if (isLoading) {
+        els.loadingText.textContent = message;
         els.loadingState.classList.remove('hidden');
         els.emptyState.classList.add('hidden');
         els.tableWrapper.classList.add('hidden');
@@ -610,15 +608,70 @@
     }
 
     // =========================================================================
-    // CHIAMATE REST A SUPABASE (POSTGREST)
+    // PAGINAZIONE COMPLETA SENZA LIMITI SU SUPABASE (POSTGREST RANGE)
     // =========================================================================
+
+    async function fetchAllRowsPaginated(baseUrl, apiKey, tableName, selectParam, orderParam, onProgress) {
+      const pageSize = 1000;
+      let from = 0;
+      let allRows = [];
+      let keepFetching = true;
+
+      while (keepFetching) {
+        const to = from + pageSize - 1;
+        const url = `${baseUrl}/rest/v1/${tableName}?select=${selectParam}&order=${orderParam}`;
+
+        const res = await fetch(url, {
+          headers: {
+            'apikey': apiKey,
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json',
+            'Range-Unit': 'items',
+            'Range': `${from}-${to}`
+          }
+        });
+
+        // 416 Range Not Satisfiable = abbiamo già letto tutte le righe esatte
+        if (res.status === 416) {
+          break;
+        }
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw { status: res.status, body: errBody, table: tableName };
+        }
+
+        const chunk = await res.json();
+        if (!Array.isArray(chunk) || chunk.length === 0) {
+          break;
+        }
+
+        allRows = allRows.concat(chunk);
+        if (typeof onProgress === 'function') {
+          onProgress(allRows.length);
+        }
+
+        if (chunk.length < pageSize) {
+          keepFetching = false;
+        } else {
+          from += pageSize;
+        }
+      }
+
+      return allRows;
+    }
 
     async function fetchFromSupabase() {
       const baseUrl = normalizeSupabaseBaseUrl(els.supabaseUrl.value);
       const apiKey = els.supabaseKey.value.trim();
 
-      if (!baseUrl || !apiKey) {
-        showError('Dati mancanti', 'Inserisci sia l’URL del progetto Supabase sia la Anon Public Key.');
+      if (!baseUrl || !apiKey || apiKey === 'INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY') {
+        els.configPanel.classList.remove('hidden');
+        setConnectionStatus('error', 'Chiave mancante');
+        showError(
+          'Credenziali Supabase incomplete',
+          'Inserisci la tua Anon Public Key (eyJ...) nel campo qui sopra oppure nella costante EMBEDDED_SUPABASE_KEY nel codice HTML.'
+        );
         return;
       }
 
@@ -628,51 +681,44 @@
         localStorage.setItem(STORAGE_KEY_URL, baseUrl);
         localStorage.setItem(STORAGE_KEY_ANON, apiKey);
       } catch (e) {
-        // Ignora eventuali restrizioni storage in iframe
+        // Ignora eventuali restrizioni storage
       }
 
       hideError();
-      setLoading(true);
+      setLoading(true, 'Caricamento reparti in corso...');
       state.isDemo = false;
 
-      const headers = {
-        'apikey': apiKey,
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json'
-      };
-
       try {
-        // 1. Carica l'elenco completo dei reparti da CICC_Tbl_Impostazioni_Reparto
-        const deptUrl = `${baseUrl}/rest/v1/CICC_Tbl_Impostazioni_Reparto?select=*&order=ID.asc`;
-        const deptRes = await fetch(deptUrl, { headers });
+        // 1. Carica tutti i reparti senza limiti
+        const departments = await fetchAllRowsPaginated(
+          baseUrl,
+          apiKey,
+          'CICC_Tbl_Impostazioni_Reparto',
+          '*',
+          'ID.asc'
+        );
 
-        if (!deptRes.ok) {
-          const errBody = await deptRes.json().catch(() => ({}));
-          throw { status: deptRes.status, body: errBody, table: 'CICC_Tbl_Impostazioni_Reparto' };
-        }
-        const departments = await deptRes.json();
-
-        // 2. Carica i dipendenti con JOIN automatico sulle due Foreign Key create:
-        //    - CICC_Tbl_Dati_Archivio_anagrafico(*)
-        //    - CICC_Tbl_Impostazioni_Reparto(*)
+        // 2. Carica tutti i dipendenti senza limiti (a blocchi di 1000) con JOIN sulle relazioni
         const empSelect = encodeURIComponent('*,CICC_Tbl_Dati_Archivio_anagrafico(*),CICC_Tbl_Impostazioni_Reparto(*)');
-        const empUrl = `${baseUrl}/rest/v1/CICC_Tbl_Dati_Dipendente?select=${empSelect}&order=IDDipendente.asc`;
-        const empRes = await fetch(empUrl, { headers });
+        const employees = await fetchAllRowsPaginated(
+          baseUrl,
+          apiKey,
+          'CICC_Tbl_Dati_Dipendente',
+          empSelect,
+          'IDDipendente.asc',
+          (loadedCount) => {
+            setLoading(true, `Caricamento dipendenti in corso... (${loadedCount} record scaricati)`);
+          }
+        );
 
-        if (!empRes.ok) {
-          const errBody = await empRes.json().catch(() => ({}));
-          throw { status: empRes.status, body: errBody, table: 'CICC_Tbl_Dati_Dipendente' };
-        }
-        const employees = await empRes.json();
-
-        state.departments = Array.isArray(departments) ? departments : [];
-        state.employees = Array.isArray(employees) ? employees : [];
+        state.departments = departments;
+        state.employees = employees;
 
         populateDepartmentDropdown();
         renderDashboard();
-        setConnectionStatus('connected', 'Connesso a Supabase');
+        setConnectionStatus('connected', `Connesso • ${state.employees.length} record`);
         els.configPanel.classList.add('hidden');
-        showToast(`Caricati ${state.employees.length} dipendenti e ${state.departments.length} reparti`);
+        showToast(`Caricati tutti i ${state.employees.length} dipendenti e ${state.departments.length} reparti`);
 
       } catch (err) {
         setLoading(false);
@@ -888,7 +934,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dato caricato';
-        els.emptySubtitle.innerHTML = 'Inserisci la tua <strong>Anon Key</strong> di Supabase e clicca su <strong>Carica Dati</strong>, oppure prova con i <strong>Dati Demo</strong>.';
+        els.emptySubtitle.innerHTML = 'Verifica le credenziali nel pannello <strong>Connessione</strong> oppure usa <strong>Prova con Dati Demo</strong>.';
         return;
       }
 
@@ -1000,7 +1046,7 @@
     }
 
     // =========================================================================
-    // EVENT LISTENERS & INIZIALIZZAZIONE
+    // EVENT LISTENERS & INIZIALIZZAZIONE AUTOMATICA
     // =========================================================================
 
     els.toggleConfigBtn.addEventListener('click', () => {
@@ -1065,17 +1111,25 @@
     });
 
     window.addEventListener('DOMContentLoaded', () => {
+      let savedUrl = '';
+      let savedKey = '';
       try {
-        const savedUrl = localStorage.getItem(STORAGE_KEY_URL);
-        const savedKey = localStorage.getItem(STORAGE_KEY_ANON);
-        if (savedUrl) els.supabaseUrl.value = normalizeSupabaseBaseUrl(savedUrl);
-        if (savedKey) {
-          els.supabaseKey.value = savedKey;
-          fetchFromSupabase();
-        }
+        savedUrl = localStorage.getItem(STORAGE_KEY_URL) || '';
+        savedKey = localStorage.getItem(STORAGE_KEY_ANON) || '';
       } catch (e) {
-        // Ignora eventuali errori di accesso a localStorage
+        // Ignora eventuali restrizioni localStorage
       }
+
+      // Usa priorità alle credenziali incorporate se presenti, altrimenti localStorage
+      const finalUrl = normalizeSupabaseBaseUrl(EMBEDDED_SUPABASE_URL || savedUrl);
+      const finalKey = (EMBEDDED_SUPABASE_KEY && EMBEDDED_SUPABASE_KEY !== 'INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY')
+        ? EMBEDDED_SUPABASE_KEY.trim()
+        : savedKey.trim();
+
+      els.supabaseUrl.value = finalUrl;
+      els.supabaseKey.value = finalKey;
+
+      fetchFromSupabase();
     });
   </script>
 </body>
