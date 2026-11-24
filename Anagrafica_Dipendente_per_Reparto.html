@@ -222,7 +222,7 @@
           </div>
         </div>
 
-        <!-- Filtro IDPiattaforma -->
+        <!-- Filtro IDPiattaforma (da tabella reparto) -->
         <div class="md:col-span-2">
           <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             IDPiattaforma
@@ -442,11 +442,27 @@
       return String(rawUrl || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
     }
 
-    function getPlatformValue(row) {
-      if (!row) return null;
-      const val = row.IDPiattaforma ?? row.idpiattaforma ?? row.IDPIATTAFORMA ?? null;
+    /**
+     * Estrae IDPiattaforma dall'oggetto reparto (CICC_Tbl_Impostazioni_Reparto).
+     */
+    function getDepartmentPlatformValue(deptObj) {
+      if (!deptObj) return null;
+      const val = deptObj.IDPiattaforma ?? deptObj.idpiattaforma ?? deptObj.IDPIATTAFORMA ?? null;
       if (val === null || val === undefined || String(val).trim() === '') return null;
       return String(val).trim();
+    }
+
+    /**
+     * Risolve l'oggetto reparto completo per una riga dipendente (da join o da state.departments).
+     */
+    function resolveDepartmentObj(empRow) {
+      if (empRow && empRow.CICC_Tbl_Impostazioni_Reparto) {
+        return empRow.CICC_Tbl_Impostazioni_Reparto;
+      }
+      if (empRow && empRow.IDReparto !== null && empRow.IDReparto !== undefined) {
+        return state.departments.find(d => String(d.ID) === String(empRow.IDReparto)) || null;
+      }
+      return null;
     }
 
     function getDepartmentLabel(deptObj, fallbackId) {
@@ -800,10 +816,10 @@
       state.isDemo = true;
 
       state.departments = [
-        { ID: 1, Reparto: 'Produzione Linea A', Contatore: 'PRD-A' },
-        { ID: 2, Reparto: 'Logistica e Magazzino', Contatore: 'LOG-01' },
-        { ID: 3, Reparto: 'Controllo Qualità', Contatore: 'QA-02' },
-        { ID: 4, Reparto: 'Manutenzione Impianti', Contatore: 'MNT-01' }
+        { ID: 1, Reparto: 'Produzione Linea A', Contatore: 'PRD-A', IDPiattaforma: 1 },
+        { ID: 2, Reparto: 'Logistica e Magazzino', Contatore: 'LOG-01', IDPiattaforma: 2 },
+        { ID: 3, Reparto: 'Controllo Qualità', Contatore: 'QA-02', IDPiattaforma: 2 },
+        { ID: 4, Reparto: 'Manutenzione Impianti', Contatore: 'MNT-01', IDPiattaforma: null }
       ];
 
       state.employees = [
@@ -811,66 +827,61 @@
           IDDipendente: 101,
           IDReparto: 1,
           IDArchivio: 50101,
-          IDPiattaforma: 1,
           Turnazione: 1,
           DA: '2025-01-10T00:00:00',
           AL: '2027-12-31T00:00:00',
           Note: 'Capoturno Linea A - Abilitato carrello elevatore e conduzione presse.',
           Visibile: 1,
           CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50101, Cognome: 'Rossi', Nome: 'Marco', Matricola: 'MAT-104' },
-          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A' }
+          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A', IDPiattaforma: 1 }
         },
         {
           IDDipendente: 102,
           IDReparto: 1,
           IDArchivio: 50102,
-          IDPiattaforma: 1,
           Turnazione: 2,
           DA: '2025-03-01T00:00:00',
           AL: null,
           Note: 'Assegnazione permanente secondo turno.',
           Visibile: 1,
           CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50102, Cognome: 'Bianchi', Nome: 'Elena', Matricola: 'MAT-118' },
-          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A' }
+          CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A', IDPiattaforma: 1 }
         },
         {
           IDDipendente: 103,
           IDReparto: 2,
           IDArchivio: 50108,
-          IDPiattaforma: 2,
           Turnazione: 1,
           DA: '2025-02-15T00:00:00',
           AL: '2026-11-30T00:00:00',
           Note: 'Gestione spedizioni e ricevimento merci.',
           Visibile: 1,
           CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50108, Cognome: 'Furlan', Nome: 'Luca', Matricola: 'MAT-209' },
-          CICC_Tbl_Impostazioni_Reparto: { ID: 2, Reparto: 'Logistica e Magazzino' }
+          CICC_Tbl_Impostazioni_Reparto: { ID: 2, Reparto: 'Logistica e Magazzino', IDPiattaforma: 2 }
         },
         {
           IDDipendente: 104,
           IDReparto: 3,
           IDArchivio: 50115,
-          IDPiattaforma: 2,
           Turnazione: 3,
           DA: '2024-09-01T00:00:00',
           AL: '2025-06-30T00:00:00',
           Note: 'Contratto a termine concluso, archiviato.',
           Visibile: 0,
           CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50115, Cognome: 'Zanetti', Nome: 'Chiara', Matricola: 'MAT-087' },
-          CICC_Tbl_Impostazioni_Reparto: { ID: 3, Reparto: 'Controllo Qualità' }
+          CICC_Tbl_Impostazioni_Reparto: { ID: 3, Reparto: 'Controllo Qualità', IDPiattaforma: 2 }
         },
         {
           IDDipendente: 105,
           IDReparto: 4,
           IDArchivio: 50122,
-          IDPiattaforma: null,
           Turnazione: 1,
           DA: '2025-01-01T00:00:00',
           AL: null,
           Note: 'Reperibilità fine settimana su impianti elettrici e pneumatici.',
           Visibile: 1,
           CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50122, Cognome: 'De Luca', Nome: 'Andrea', Matricola: 'MAT-052' },
-          CICC_Tbl_Impostazioni_Reparto: { ID: 4, Reparto: 'Manutenzione Impianti' }
+          CICC_Tbl_Impostazioni_Reparto: { ID: 4, Reparto: 'Manutenzione Impianti', IDPiattaforma: null }
         }
       ];
 
@@ -921,23 +932,27 @@
       }
     }
 
+    /**
+     * Popola la tendina IDPiattaforma leggendo IDPiattaforma dalla tabella dei reparti
+     * (CICC_Tbl_Impostazioni_Reparto), conteggiando i reparti associati a ciascun valore.
+     */
     function populatePlatformDropdown() {
       const currentVal = els.platformFilter.value;
       els.platformFilter.innerHTML = '<option value="ALL">Tutte le piattaforme</option>';
 
-      const countsByPlatform = new Map();
-      let unassignedPlatformCount = 0;
+      const deptCountsByPlatform = new Map();
+      let deptsWithoutPlatform = 0;
 
-      for (const emp of state.employees) {
-        const plat = getPlatformValue(emp);
+      for (const dept of state.departments) {
+        const plat = getDepartmentPlatformValue(dept);
         if (plat === null) {
-          unassignedPlatformCount++;
+          deptsWithoutPlatform++;
         } else {
-          countsByPlatform.set(plat, (countsByPlatform.get(plat) || 0) + 1);
+          deptCountsByPlatform.set(plat, (deptCountsByPlatform.get(plat) || 0) + 1);
         }
       }
 
-      const sortedPlatforms = [...countsByPlatform.entries()].sort((a, b) => {
+      const sortedPlatforms = [...deptCountsByPlatform.entries()].sort((a, b) => {
         const numA = Number(a[0]);
         const numB = Number(b[0]);
         if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
@@ -946,17 +961,17 @@
         return a[0].localeCompare(b[0], 'it');
       });
 
-      for (const [platVal, count] of sortedPlatforms) {
+      for (const [platVal, deptCount] of sortedPlatforms) {
         const opt = document.createElement('option');
         opt.value = platVal;
-        opt.textContent = `IDPiattaforma ${platVal} (${count})`;
+        opt.textContent = `IDPiattaforma ${platVal} (${deptCount} ${deptCount === 1 ? 'reparto' : 'reparti'})`;
         els.platformFilter.appendChild(opt);
       }
 
-      if (unassignedPlatformCount > 0) {
+      if (deptsWithoutPlatform > 0) {
         const optNone = document.createElement('option');
         optNone.value = 'NONE';
-        optNone.textContent = `Senza IDPiattaforma (${unassignedPlatformCount})`;
+        optNone.textContent = `Senza IDPiattaforma (${deptsWithoutPlatform})`;
         els.platformFilter.appendChild(optNone);
       }
 
@@ -979,11 +994,13 @@
           if (String(row.IDReparto) !== selectedDept) return false;
         }
 
-        const rowPlatform = getPlatformValue(row);
+        const deptObj = resolveDepartmentObj(row);
+        const deptPlatform = getDepartmentPlatformValue(deptObj);
+
         if (selectedPlatform === 'NONE') {
-          if (rowPlatform !== null) return false;
+          if (deptPlatform !== null) return false;
         } else if (selectedPlatform !== 'ALL') {
-          if (rowPlatform !== selectedPlatform) return false;
+          if (deptPlatform !== selectedPlatform) return false;
         }
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
@@ -996,14 +1013,13 @@
 
         if (query) {
           const empInfo = getEmployeeDisplayInfo(row);
-          const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
           const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
 
           const haystack = [
             empInfo.fullName,
             empInfo.subtitle,
             deptLabel,
-            rowPlatform || '',
+            deptPlatform || '',
             row.Note || '',
             String(row.IDDipendente || ''),
             String(row.IDArchivio || '')
@@ -1066,9 +1082,9 @@
 
       els.employeesTableBody.innerHTML = filtered.map(row => {
         const empInfo = getEmployeeDisplayInfo(row);
-        const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
+        const deptObj = resolveDepartmentObj(row);
         const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
-        const rowPlatform = getPlatformValue(row);
+        const deptPlatform = getDepartmentPlatformValue(deptObj);
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
         const activeToday = isRecordActiveToday(row);
@@ -1078,8 +1094,8 @@
           ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">Turno ${escapeHtml(row.Turnazione)}</span>`
           : `<span class="text-xs text-slate-400">—</span>`;
 
-        const platformBadge = rowPlatform !== null
-          ? `<span class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">Piattaforma ${escapeHtml(rowPlatform)}</span>`
+        const platformBadge = deptPlatform !== null
+          ? `<span class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">Piattaforma ${escapeHtml(deptPlatform)}</span>`
           : '';
 
         const statusBadge = isVis
@@ -1146,14 +1162,14 @@
       if (!row) return;
 
       const empInfo = getEmployeeDisplayInfo(row);
-      const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
+      const deptObj = resolveDepartmentObj(row);
       const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
-      const rowPlatform = getPlatformValue(row);
+      const deptPlatform = getDepartmentPlatformValue(deptObj);
       const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
 
       document.getElementById('modalDeptBadge').textContent = deptLabel;
       document.getElementById('modalEmployeeName').textContent = empInfo.fullName;
-      document.getElementById('modalEmployeeIds').textContent = `ID Dipendente: ${row.IDDipendente} • ${empInfo.subtitle}${rowPlatform !== null ? ` • IDPiattaforma: ${rowPlatform}` : ''}`;
+      document.getElementById('modalEmployeeIds').textContent = `ID Dipendente: ${row.IDDipendente} • ${empInfo.subtitle}${deptPlatform !== null ? ` • IDPiattaforma Reparto: ${deptPlatform}` : ''}`;
       document.getElementById('modalDateFrom').textContent = formatDateIT(row.DA);
       document.getElementById('modalDateTo').textContent = formatDateIT(row.AL);
       document.getElementById('modalShift').textContent = row.Turnazione !== null && row.Turnazione !== undefined ? `Turno ${row.Turnazione}` : 'Non specificata';
