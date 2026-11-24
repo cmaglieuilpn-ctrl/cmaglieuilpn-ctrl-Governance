@@ -195,7 +195,7 @@
     <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
         <!-- 1. Filtro IDPiattaforma (da tabella reparto) -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-3">
           <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             IDPiattaforma
           </label>
@@ -205,7 +205,7 @@
         </div>
 
         <!-- 2. Filtro Reparto -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-3">
           <label for="departmentSelect" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Seleziona Reparto
           </label>
@@ -214,8 +214,28 @@
           </select>
         </div>
 
-        <!-- 3. Ricerca Testuale -->
-        <div class="lg:col-span-2">
+        <!-- 3. Filtro Attività lavorativa (da tabella anagrafico) -->
+        <div class="lg:col-span-3">
+          <label for="activityFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Attività Lavorativa
+          </label>
+          <select id="activityFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Tutte le attività</option>
+          </select>
+        </div>
+
+        <!-- 4. Filtro Contratto (da tabella anagrafico) -->
+        <div class="lg:col-span-3">
+          <label for="contractFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Contratto
+          </label>
+          <select id="contractFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Tutti i contratti</option>
+          </select>
+        </div>
+
+        <!-- 5. Ricerca Testuale -->
+        <div class="lg:col-span-3">
           <label for="searchInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Cerca Dipendente / Note
           </label>
@@ -226,14 +246,14 @@
             <input
               type="text"
               id="searchInput"
-              placeholder="Nome, ID, note..."
+              placeholder="Nome, ID, contratto, note..."
               class="w-full rounded-xl border border-slate-300 pl-9 pr-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
         </div>
 
-        <!-- 4. Filtro Visibilità -->
-        <div class="lg:col-span-2">
+        <!-- 6. Filtro Visibilità -->
+        <div class="lg:col-span-3">
           <label for="visibilityFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Visibilità
           </label>
@@ -244,8 +264,8 @@
           </select>
         </div>
 
-        <!-- 5. Filtro Attivo / Non attivo -->
-        <div class="lg:col-span-2">
+        <!-- 7. Filtro Attivo / Non attivo -->
+        <div class="lg:col-span-3">
           <label for="activeStatusFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Stato Periodo
           </label>
@@ -256,8 +276,8 @@
           </select>
         </div>
 
-        <!-- 6. Filtro Periodo (Mese e Anno) -->
-        <div class="lg:col-span-2">
+        <!-- 8. Filtro Periodo (Mese e Anno) -->
+        <div class="lg:col-span-3">
           <label for="monthYearFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Mese / Anno
           </label>
@@ -396,6 +416,14 @@
           <span class="text-slate-500 block">Visibilità</span>
           <span id="modalVisibility" class="font-semibold text-slate-800">-</span>
         </div>
+        <div>
+          <span class="text-slate-500 block">Attività lavorativa</span>
+          <span id="modalActivity" class="font-semibold text-slate-800">-</span>
+        </div>
+        <div>
+          <span class="text-slate-500 block">Contratto</span>
+          <span id="modalContract" class="font-semibold text-slate-800">-</span>
+        </div>
       </div>
 
       <div>
@@ -462,6 +490,8 @@
       kpiSelectedDept: document.getElementById('kpiSelectedDept'),
       platformFilter: document.getElementById('platformFilter'),
       departmentSelect: document.getElementById('departmentSelect'),
+      activityFilter: document.getElementById('activityFilter'),
+      contractFilter: document.getElementById('contractFilter'),
       searchInput: document.getElementById('searchInput'),
       visibilityFilter: document.getElementById('visibilityFilter'),
       activeStatusFilter: document.getElementById('activeStatusFilter'),
@@ -499,6 +529,76 @@
       const val = deptObj.IDPiattaforma ?? deptObj.idpiattaforma ?? deptObj.IDPIATTAFORMA ?? null;
       if (val === null || val === undefined || String(val).trim() === '') return null;
       return String(val).trim();
+    }
+
+    /**
+     * Estrae "Attività lavorativa" dalla tabella anagrafico (CICC_Tbl_Dati_Archivio_anagrafico).
+     */
+    function getEmployeeActivityValue(empRow) {
+      const arch = empRow?.CICC_Tbl_Dati_Archivio_anagrafico;
+      if (!arch) return null;
+
+      const candidateKeys = [
+        'Attività lavorativa',
+        'Attivita lavorativa',
+        'Attività Lavorativa',
+        'Attivita Lavorativa',
+        'Attività_lavorativa',
+        'Attivita_lavorativa',
+        'AttivitaLavorativa',
+        'AttivitàLavorativa',
+        'Attivita',
+        'Attività'
+      ];
+
+      for (const key of candidateKeys) {
+        if (arch[key] !== null && arch[key] !== undefined && String(arch[key]).trim() !== '') {
+          return String(arch[key]).trim();
+        }
+      }
+
+      for (const [k, v] of Object.entries(arch)) {
+        const normalizedKey = k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s_]/g, '');
+        if ((normalizedKey === 'attivitaslavorativa' || normalizedKey === 'attivitavorativa' || normalizedKey === 'attivitalavorativa' || normalizedKey === 'attivita') && v !== null && v !== undefined && String(v).trim() !== '') {
+          return String(v).trim();
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * Estrae "Contratto" dalla tabella anagrafico (CICC_Tbl_Dati_Archivio_anagrafico).
+     */
+    function getEmployeeContractValue(empRow) {
+      const arch = empRow?.CICC_Tbl_Dati_Archivio_anagrafico;
+      if (!arch) return null;
+
+      const candidateKeys = [
+        'Contratto',
+        'contratto',
+        'CONTRATTO',
+        'TipoContratto',
+        'Tipo Contratto',
+        'Tipo_contratto',
+        'TipologiaContratto',
+        'Tipologia Contratto'
+      ];
+
+      for (const key of candidateKeys) {
+        if (arch[key] !== null && arch[key] !== undefined && String(arch[key]).trim() !== '') {
+          return String(arch[key]).trim();
+        }
+      }
+
+      for (const [k, v] of Object.entries(arch)) {
+        const normalizedKey = k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s_]/g, '');
+        if ((normalizedKey === 'contratto' || normalizedKey === 'tipocontratto' || normalizedKey === 'tipologiacontratto') && v !== null && v !== undefined && String(v).trim() !== '') {
+          return String(v).trim();
+        }
+      }
+
+      return null;
     }
 
     /**
@@ -918,6 +1018,8 @@
 
         populatePlatformDropdown();
         populateDepartmentDropdown();
+        populateActivityDropdown();
+        populateContractDropdown();
         renderDashboard();
         setConnectionStatus('connected', `Connesso • ${state.employees.length} record`);
         els.configPanel.classList.add('hidden');
@@ -967,7 +1069,7 @@
           AL: '2027-12-31T00:00:00',
           Note: 'Capoturno Linea A - Abilitato carrello elevatore e conduzione presse.',
           Visibile: 1,
-          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50101, Cognome: 'Rossi', Nome: 'Marco', Matricola: 'MAT-104' },
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50101, Cognome: 'Rossi', Nome: 'Marco', Matricola: 'MAT-104', 'Attività lavorativa': 'Operaio Specializzato', Contratto: 'Tempo Indeterminato' },
           CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A', IDPiattaforma: 1 }
         },
         {
@@ -979,7 +1081,7 @@
           AL: null,
           Note: 'Assegnazione permanente secondo turno.',
           Visibile: 1,
-          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50102, Cognome: 'Bianchi', Nome: 'Elena', Matricola: 'MAT-118' },
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50102, Cognome: 'Bianchi', Nome: 'Elena', Matricola: 'MAT-118', 'Attività lavorativa': 'Addetto Produzione', Contratto: 'Tempo Determinato' },
           CICC_Tbl_Impostazioni_Reparto: { ID: 1, Reparto: 'Produzione Linea A', IDPiattaforma: 1 }
         },
         {
@@ -991,7 +1093,7 @@
           AL: '2026-11-30T00:00:00',
           Note: 'Gestione spedizioni e ricevimento merci.',
           Visibile: 1,
-          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50108, Cognome: 'Furlan', Nome: 'Luca', Matricola: 'MAT-209' },
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50108, Cognome: 'Furlan', Nome: 'Luca', Matricola: 'MAT-209', 'Attività lavorativa': 'Magazziniere / Carrellista', Contratto: 'Somministrazione' },
           CICC_Tbl_Impostazioni_Reparto: { ID: 2, Reparto: 'Logistica e Magazzino', IDPiattaforma: 2 }
         },
         {
@@ -1003,7 +1105,7 @@
           AL: '2025-06-30T00:00:00',
           Note: 'Contratto a termine concluso, archiviato.',
           Visibile: 0,
-          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50115, Cognome: 'Zanetti', Nome: 'Chiara', Matricola: 'MAT-087' },
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50115, Cognome: 'Zanetti', Nome: 'Chiara', Matricola: 'MAT-087', 'Attività lavorativa': 'Tecnico Controllo Qualità', Contratto: 'Tempo Determinato' },
           CICC_Tbl_Impostazioni_Reparto: { ID: 3, Reparto: 'Controllo Qualità', IDPiattaforma: 2 }
         },
         {
@@ -1015,13 +1117,15 @@
           AL: null,
           Note: 'Reperibilità fine settimana su impianti elettrici e pneumatici.',
           Visibile: 1,
-          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50122, Cognome: 'De Luca', Nome: 'Andrea', Matricola: 'MAT-052' },
+          CICC_Tbl_Dati_Archivio_anagrafico: { IDARCHIVIO: 50122, Cognome: 'De Luca', Nome: 'Andrea', Matricola: 'MAT-052', 'Attività lavorativa': null, Contratto: null },
           CICC_Tbl_Impostazioni_Reparto: { ID: 4, Reparto: 'Manutenzione Impianti', IDPiattaforma: null }
         }
       ];
 
       populatePlatformDropdown();
       populateDepartmentDropdown();
+      populateActivityDropdown();
+      populateContractDropdown();
       renderDashboard();
       setConnectionStatus('demo', 'Modalità Demo attiva');
       showToast('Dati demo caricati');
@@ -1122,9 +1226,92 @@
       }
     }
 
+    function populateActivityDropdown() {
+      const currentVal = els.activityFilter.value;
+      els.activityFilter.innerHTML = '<option value="ALL">Tutte le attività</option>';
+
+      const countsByActivity = new Map();
+      let withoutActivityCount = 0;
+
+      for (const emp of state.employees) {
+        const act = getEmployeeActivityValue(emp);
+        if (act === null) {
+          withoutActivityCount++;
+        } else {
+          countsByActivity.set(act, (countsByActivity.get(act) || 0) + 1);
+        }
+      }
+
+      const sortedActivities = [...countsByActivity.entries()].sort((a, b) =>
+        a[0].localeCompare(b[0], 'it', { numeric: true })
+      );
+
+      for (const [actLabel, count] of sortedActivities) {
+        const opt = document.createElement('option');
+        opt.value = actLabel;
+        opt.textContent = `${actLabel} (${count})`;
+        els.activityFilter.appendChild(opt);
+      }
+
+      if (withoutActivityCount > 0) {
+        const optNone = document.createElement('option');
+        optNone.value = 'NONE';
+        optNone.textContent = `Non specificata (${withoutActivityCount})`;
+        els.activityFilter.appendChild(optNone);
+      }
+
+      if ([...els.activityFilter.options].some(o => o.value === currentVal)) {
+        els.activityFilter.value = currentVal;
+      }
+    }
+
+    /**
+     * Popola il filtro "Contratto" leggendo i valori distinti dalla tabella anagrafico.
+     */
+    function populateContractDropdown() {
+      const currentVal = els.contractFilter.value;
+      els.contractFilter.innerHTML = '<option value="ALL">Tutti i contratti</option>';
+
+      const countsByContract = new Map();
+      let withoutContractCount = 0;
+
+      for (const emp of state.employees) {
+        const contract = getEmployeeContractValue(emp);
+        if (contract === null) {
+          withoutContractCount++;
+        } else {
+          countsByContract.set(contract, (countsByContract.get(contract) || 0) + 1);
+        }
+      }
+
+      const sortedContracts = [...countsByContract.entries()].sort((a, b) =>
+        a[0].localeCompare(b[0], 'it', { numeric: true })
+      );
+
+      for (const [contractLabel, count] of sortedContracts) {
+        const opt = document.createElement('option');
+        opt.value = contractLabel;
+        opt.textContent = `${contractLabel} (${count})`;
+        els.contractFilter.appendChild(opt);
+      }
+
+      if (withoutContractCount > 0) {
+        const optNone = document.createElement('option');
+        optNone.value = 'NONE';
+        optNone.textContent = `Non specificato (${withoutContractCount})`;
+        els.contractFilter.appendChild(optNone);
+      }
+
+      if ([...els.contractFilter.options].some(o => o.value === currentVal)) {
+        els.contractFilter.value = currentVal;
+      }
+    }
+
     function getFilteredEmployees() {
       const selectedPlatform = els.platformFilter.value;
       const selectedDept = els.departmentSelect.value;
+      const selectedActivity = els.activityFilter.value;
+      const selectedContract = els.contractFilter.value;
       const query = els.searchInput.value.trim().toLowerCase();
       const visibility = els.visibilityFilter.value;
       const activeStatus = els.activeStatusFilter.value;
@@ -1144,6 +1331,20 @@
           if (row.IDReparto !== null && row.IDReparto !== undefined) return false;
         } else if (selectedDept !== 'ALL') {
           if (String(row.IDReparto) !== selectedDept) return false;
+        }
+
+        const empActivity = getEmployeeActivityValue(row);
+        if (selectedActivity === 'NONE') {
+          if (empActivity !== null) return false;
+        } else if (selectedActivity !== 'ALL') {
+          if (empActivity !== selectedActivity) return false;
+        }
+
+        const empContract = getEmployeeContractValue(row);
+        if (selectedContract === 'NONE') {
+          if (empContract !== null) return false;
+        } else if (selectedContract !== 'ALL') {
+          if (empContract !== selectedContract) return false;
         }
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
@@ -1167,6 +1368,8 @@
             empInfo.subtitle,
             deptLabel,
             deptPlatform || '',
+            empActivity || '',
+            empContract || '',
             row.Note || '',
             String(row.IDDipendente || ''),
             String(row.IDArchivio || '')
@@ -1201,6 +1404,14 @@
         activeFilters.push(`Piattaforma: ${platOptionText}`);
       }
       if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
+      if (els.activityFilter.value !== 'ALL') {
+        const actOptionText = els.activityFilter.options[els.activityFilter.selectedIndex]?.text || els.activityFilter.value;
+        activeFilters.push(`Attività: ${actOptionText}`);
+      }
+      if (els.contractFilter.value !== 'ALL') {
+        const contractOptionText = els.contractFilter.options[els.contractFilter.selectedIndex]?.text || els.contractFilter.value;
+        activeFilters.push(`Contratto: ${contractOptionText}`);
+      }
       if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
       if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
       if (els.activeStatusFilter.value === 'ACTIVE') activeFilters.push('Stato: Attivo');
@@ -1236,7 +1447,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
-        els.emptySubtitle.textContent = 'Prova a cambiare IDPiattaforma, reparto, stato periodo, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        els.emptySubtitle.textContent = 'Prova a cambiare IDPiattaforma, reparto, attività lavorativa, contratto, stato periodo, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
         return;
       }
 
@@ -1245,6 +1456,7 @@
 
       els.employeesTableBody.innerHTML = filtered.map(row => {
         const empInfo = getEmployeeDisplayInfo(row);
+        const empActivity = getEmployeeActivityValue(row);
         const deptObj = resolveDepartmentObj(row);
         const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
         const deptPlatform = getDepartmentPlatformValue(deptObj);
@@ -1252,6 +1464,10 @@
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
         const activeToday = isRecordActiveToday(row);
         const expired = isRecordExpired(row);
+
+        const activityPill = empActivity
+          ? `<span class="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">${escapeHtml(empActivity)}</span>`
+          : '';
 
         const turnazioneBadge = (row.Turnazione !== null && row.Turnazione !== undefined)
           ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">Turno ${escapeHtml(row.Turnazione)}</span>`
@@ -1287,6 +1503,7 @@
                 <div>
                   <div class="font-semibold text-slate-900">${escapeHtml(empInfo.fullName)}</div>
                   <div class="text-xs text-slate-500">${escapeHtml(empInfo.subtitle)}</div>
+                  ${activityPill}
                 </div>
               </div>
             </td>
@@ -1325,6 +1542,8 @@
       if (!row) return;
 
       const empInfo = getEmployeeDisplayInfo(row);
+      const empActivity = getEmployeeActivityValue(row);
+      const empContract = getEmployeeContractValue(row);
       const deptObj = resolveDepartmentObj(row);
       const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
       const deptPlatform = getDepartmentPlatformValue(deptObj);
@@ -1337,6 +1556,8 @@
       document.getElementById('modalDateTo').textContent = formatDateIT(row.AL);
       document.getElementById('modalShift').textContent = row.Turnazione !== null && row.Turnazione !== undefined ? `Turno ${row.Turnazione}` : 'Non specificata';
       document.getElementById('modalVisibility').textContent = isVis ? 'Visibile' : 'Nascosto';
+      document.getElementById('modalActivity').textContent = empActivity || 'Non specificata';
+      document.getElementById('modalContract').textContent = empContract || 'Non specificato';
       document.getElementById('modalNotes').textContent = row.Note && String(row.Note).trim() ? String(row.Note).trim() : 'Nessuna nota inserita.';
 
       els.detailModal.classList.remove('hidden');
@@ -1386,6 +1607,8 @@
       renderDashboard();
     });
     els.departmentSelect.addEventListener('change', renderDashboard);
+    els.activityFilter.addEventListener('change', renderDashboard);
+    els.contractFilter.addEventListener('change', renderDashboard);
     els.searchInput.addEventListener('input', renderDashboard);
     els.visibilityFilter.addEventListener('change', renderDashboard);
     els.activeStatusFilter.addEventListener('change', renderDashboard);
@@ -1395,6 +1618,8 @@
       els.platformFilter.value = 'ALL';
       populateDepartmentDropdown();
       els.departmentSelect.value = 'ALL';
+      els.activityFilter.value = 'ALL';
+      els.contractFilter.value = 'ALL';
       els.searchInput.value = '';
       els.visibilityFilter.value = 'VISIBLE';
       els.activeStatusFilter.value = 'ALL';
