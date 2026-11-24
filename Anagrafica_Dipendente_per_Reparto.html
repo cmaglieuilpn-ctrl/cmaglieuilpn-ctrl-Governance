@@ -69,7 +69,7 @@
   <!-- Contenuto Principale -->
   <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
 
-    <!-- Pannello Configurazione Supabase (nascosto di default se credenziali già presenti) -->
+    <!-- Pannello Configurazione Supabase -->
     <section id="configPanel" class="hidden bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div>
@@ -234,16 +234,17 @@
           </select>
         </div>
 
-        <!-- Filtro Periodo -->
+        <!-- Filtro Periodo (Mese e Anno) -->
         <div class="md:col-span-2">
-          <label for="periodFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-            Periodo
+          <label for="monthYearFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            Mese / Anno
           </label>
-          <select id="periodFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="ALL">Qualsiasi data</option>
-            <option value="ACTIVE">Attivi oggi</option>
-            <option value="EXPIRED">Scaduti</option>
-          </select>
+          <input
+            type="month"
+            id="monthYearFilter"
+            title="Filtra dipendenti attivi nel mese/anno selezionato"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
         </div>
       </div>
 
@@ -368,7 +369,7 @@
     // Sostituisci "INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY" con la tua anon key
     // =========================================================================
     const EMBEDDED_SUPABASE_URL = 'https://iruibthbogiktggdzrjh.supabase.co';
-    const EMBEDDED_SUPABASE_KEY = 'sb_publishable_ZDcIzD4liZx6m3rMrSQdMw_RdKEE4Zy';
+    const EMBEDDED_SUPABASE_KEY = 'INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY';
 
     const STORAGE_KEY_URL = 'supabase_cicc_url';
     const STORAGE_KEY_ANON = 'supabase_cicc_anon_key';
@@ -405,7 +406,7 @@
       departmentSelect: document.getElementById('departmentSelect'),
       searchInput: document.getElementById('searchInput'),
       visibilityFilter: document.getElementById('visibilityFilter'),
-      periodFilter: document.getElementById('periodFilter'),
+      monthYearFilter: document.getElementById('monthYearFilter'),
       activeFilterSummary: document.getElementById('activeFilterSummary'),
       resetFiltersBtn: document.getElementById('resetFiltersBtn'),
       refreshDataBtn: document.getElementById('refreshDataBtn'),
@@ -423,7 +424,7 @@
     };
 
     // =========================================================================
-    // FUNZIONI DI UTILITÀ PER ESTRAZIONE CAMPI FLESSIBILE
+    // FUNZIONI DI UTILITÀ PER ESTRAZIONE CAMPI E DATE
     // =========================================================================
 
     function normalizeSupabaseBaseUrl(rawUrl) {
@@ -509,6 +510,14 @@
       return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
+    function formatMonthYearIT(monthYearStr) {
+      if (!monthYearStr) return '';
+      const [y, m] = monthYearStr.split('-');
+      const d = new Date(Number(y), Number(m) - 1, 1);
+      if (Number.isNaN(d.getTime())) return monthYearStr;
+      return d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+    }
+
     function isRecordActiveToday(row) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -524,6 +533,33 @@
         end.setHours(23, 59, 59, 999);
         if (today > end) return false;
       }
+      return true;
+    }
+
+    function isRecordActiveInMonth(row, monthYearStr) {
+      if (!monthYearStr) return true;
+
+      const [yearStr, monthStr] = monthYearStr.split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      if (!year || !month) return true;
+
+      const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+      const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+
+      const recStart = row.DA ? new Date(row.DA) : null;
+      const recEnd = row.AL ? new Date(row.AL) : null;
+
+      if (recStart && !Number.isNaN(recStart.getTime())) {
+        recStart.setHours(0, 0, 0, 0);
+        if (recStart > monthEnd) return false;
+      }
+
+      if (recEnd && !Number.isNaN(recEnd.getTime())) {
+        recEnd.setHours(23, 59, 59, 999);
+        if (recEnd < monthStart) return false;
+      }
+
       return true;
     }
 
@@ -631,7 +667,6 @@
           }
         });
 
-        // 416 Range Not Satisfiable = abbiamo già letto tutte le righe esatte
         if (res.status === 416) {
           break;
         }
@@ -689,7 +724,6 @@
       state.isDemo = false;
 
       try {
-        // 1. Carica tutti i reparti senza limiti
         const departments = await fetchAllRowsPaginated(
           baseUrl,
           apiKey,
@@ -698,7 +732,6 @@
           'ID.asc'
         );
 
-        // 2. Carica tutti i dipendenti senza limiti (a blocchi di 1000) con JOIN sulle relazioni
         const empSelect = encodeURIComponent('*,CICC_Tbl_Dati_Archivio_anagrafico(*),CICC_Tbl_Impostazioni_Reparto(*)');
         const employees = await fetchAllRowsPaginated(
           baseUrl,
@@ -867,7 +900,7 @@
       const selectedDept = els.departmentSelect.value;
       const query = els.searchInput.value.trim().toLowerCase();
       const visibility = els.visibilityFilter.value;
-      const period = els.periodFilter.value;
+      const selectedMonthYear = els.monthYearFilter.value;
 
       return state.employees.filter(row => {
         if (selectedDept === 'NONE') {
@@ -880,8 +913,9 @@
         if (visibility === 'VISIBLE' && !isVis) return false;
         if (visibility === 'HIDDEN' && isVis) return false;
 
-        if (period === 'ACTIVE' && !isRecordActiveToday(row)) return false;
-        if (period === 'EXPIRED' && !isRecordExpired(row)) return false;
+        if (selectedMonthYear && !isRecordActiveInMonth(row, selectedMonthYear)) {
+          return false;
+        }
 
         if (query) {
           const empInfo = getEmployeeDisplayInfo(row);
@@ -922,8 +956,7 @@
       if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
       if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
       if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
-      if (els.periodFilter.value === 'ACTIVE') activeFilters.push('Attivi oggi');
-      if (els.periodFilter.value === 'EXPIRED') activeFilters.push('Scaduti');
+      if (els.monthYearFilter.value) activeFilters.push(`Periodo: ${formatMonthYearIT(els.monthYearFilter.value)}`);
       if (els.searchInput.value.trim()) activeFilters.push(`Ricerca: "${els.searchInput.value.trim()}"`);
 
       els.activeFilterSummary.textContent = activeFilters.length > 0
@@ -942,7 +975,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
-        els.emptySubtitle.textContent = 'Prova a cambiare reparto, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        els.emptySubtitle.textContent = 'Prova a cambiare reparto, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
         return;
       }
 
@@ -1069,13 +1102,13 @@
     els.departmentSelect.addEventListener('change', renderDashboard);
     els.searchInput.addEventListener('input', renderDashboard);
     els.visibilityFilter.addEventListener('change', renderDashboard);
-    els.periodFilter.addEventListener('change', renderDashboard);
+    els.monthYearFilter.addEventListener('change', renderDashboard);
 
     els.resetFiltersBtn.addEventListener('click', () => {
       els.departmentSelect.value = 'ALL';
       els.searchInput.value = '';
       els.visibilityFilter.value = 'VISIBLE';
-      els.periodFilter.value = 'ALL';
+      els.monthYearFilter.value = '';
       renderDashboard();
     });
 
@@ -1120,7 +1153,6 @@
         // Ignora eventuali restrizioni localStorage
       }
 
-      // Usa priorità alle credenziali incorporate se presenti, altrimenti localStorage
       const finalUrl = normalizeSupabaseBaseUrl(EMBEDDED_SUPABASE_URL || savedUrl);
       const finalKey = (EMBEDDED_SUPABASE_KEY && EMBEDDED_SUPABASE_KEY !== 'INSERISCI_QUI_LA_TUA_ANON_PUBLIC_KEY')
         ? EMBEDDED_SUPABASE_KEY.trim()
