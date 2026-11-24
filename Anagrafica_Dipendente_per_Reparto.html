@@ -195,7 +195,7 @@
     <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <!-- Filtro Reparto -->
-        <div class="md:col-span-4">
+        <div class="md:col-span-3">
           <label for="departmentSelect" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Seleziona Reparto
           </label>
@@ -205,7 +205,7 @@
         </div>
 
         <!-- Ricerca Testuale -->
-        <div class="md:col-span-4">
+        <div class="md:col-span-3">
           <label for="searchInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Cerca Dipendente o Note
           </label>
@@ -220,6 +220,16 @@
               class="w-full rounded-xl border border-slate-300 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
+        </div>
+
+        <!-- Filtro IDPiattaforma -->
+        <div class="md:col-span-2">
+          <label for="platformFilter" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            IDPiattaforma
+          </label>
+          <select id="platformFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Tutte le piattaforme</option>
+          </select>
         </div>
 
         <!-- Filtro Visibilità -->
@@ -405,6 +415,7 @@
       kpiSelectedDept: document.getElementById('kpiSelectedDept'),
       departmentSelect: document.getElementById('departmentSelect'),
       searchInput: document.getElementById('searchInput'),
+      platformFilter: document.getElementById('platformFilter'),
       visibilityFilter: document.getElementById('visibilityFilter'),
       monthYearFilter: document.getElementById('monthYearFilter'),
       activeFilterSummary: document.getElementById('activeFilterSummary'),
@@ -429,6 +440,13 @@
 
     function normalizeSupabaseBaseUrl(rawUrl) {
       return String(rawUrl || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
+    }
+
+    function getPlatformValue(row) {
+      if (!row) return null;
+      const val = row.IDPiattaforma ?? row.idpiattaforma ?? row.IDPIATTAFORMA ?? null;
+      if (val === null || val === undefined || String(val).trim() === '') return null;
+      return String(val).trim();
     }
 
     function getDepartmentLabel(deptObj, fallbackId) {
@@ -748,6 +766,7 @@
         state.employees = employees;
 
         populateDepartmentDropdown();
+        populatePlatformDropdown();
         renderDashboard();
         setConnectionStatus('connected', `Connesso • ${state.employees.length} record`);
         els.configPanel.classList.add('hidden');
@@ -792,6 +811,7 @@
           IDDipendente: 101,
           IDReparto: 1,
           IDArchivio: 50101,
+          IDPiattaforma: 1,
           Turnazione: 1,
           DA: '2025-01-10T00:00:00',
           AL: '2027-12-31T00:00:00',
@@ -804,6 +824,7 @@
           IDDipendente: 102,
           IDReparto: 1,
           IDArchivio: 50102,
+          IDPiattaforma: 1,
           Turnazione: 2,
           DA: '2025-03-01T00:00:00',
           AL: null,
@@ -816,6 +837,7 @@
           IDDipendente: 103,
           IDReparto: 2,
           IDArchivio: 50108,
+          IDPiattaforma: 2,
           Turnazione: 1,
           DA: '2025-02-15T00:00:00',
           AL: '2026-11-30T00:00:00',
@@ -828,6 +850,7 @@
           IDDipendente: 104,
           IDReparto: 3,
           IDArchivio: 50115,
+          IDPiattaforma: 2,
           Turnazione: 3,
           DA: '2024-09-01T00:00:00',
           AL: '2025-06-30T00:00:00',
@@ -840,6 +863,7 @@
           IDDipendente: 105,
           IDReparto: 4,
           IDArchivio: 50122,
+          IDPiattaforma: null,
           Turnazione: 1,
           DA: '2025-01-01T00:00:00',
           AL: null,
@@ -851,6 +875,7 @@
       ];
 
       populateDepartmentDropdown();
+      populatePlatformDropdown();
       renderDashboard();
       setConnectionStatus('demo', 'Modalità Demo attiva');
       showToast('Dati demo caricati');
@@ -896,8 +921,53 @@
       }
     }
 
+    function populatePlatformDropdown() {
+      const currentVal = els.platformFilter.value;
+      els.platformFilter.innerHTML = '<option value="ALL">Tutte le piattaforme</option>';
+
+      const countsByPlatform = new Map();
+      let unassignedPlatformCount = 0;
+
+      for (const emp of state.employees) {
+        const plat = getPlatformValue(emp);
+        if (plat === null) {
+          unassignedPlatformCount++;
+        } else {
+          countsByPlatform.set(plat, (countsByPlatform.get(plat) || 0) + 1);
+        }
+      }
+
+      const sortedPlatforms = [...countsByPlatform.entries()].sort((a, b) => {
+        const numA = Number(a[0]);
+        const numB = Number(b[0]);
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+          return numA - numB;
+        }
+        return a[0].localeCompare(b[0], 'it');
+      });
+
+      for (const [platVal, count] of sortedPlatforms) {
+        const opt = document.createElement('option');
+        opt.value = platVal;
+        opt.textContent = `IDPiattaforma ${platVal} (${count})`;
+        els.platformFilter.appendChild(opt);
+      }
+
+      if (unassignedPlatformCount > 0) {
+        const optNone = document.createElement('option');
+        optNone.value = 'NONE';
+        optNone.textContent = `Senza IDPiattaforma (${unassignedPlatformCount})`;
+        els.platformFilter.appendChild(optNone);
+      }
+
+      if ([...els.platformFilter.options].some(o => o.value === currentVal)) {
+        els.platformFilter.value = currentVal;
+      }
+    }
+
     function getFilteredEmployees() {
       const selectedDept = els.departmentSelect.value;
+      const selectedPlatform = els.platformFilter.value;
       const query = els.searchInput.value.trim().toLowerCase();
       const visibility = els.visibilityFilter.value;
       const selectedMonthYear = els.monthYearFilter.value;
@@ -907,6 +977,13 @@
           if (row.IDReparto !== null && row.IDReparto !== undefined) return false;
         } else if (selectedDept !== 'ALL') {
           if (String(row.IDReparto) !== selectedDept) return false;
+        }
+
+        const rowPlatform = getPlatformValue(row);
+        if (selectedPlatform === 'NONE') {
+          if (rowPlatform !== null) return false;
+        } else if (selectedPlatform !== 'ALL') {
+          if (rowPlatform !== selectedPlatform) return false;
         }
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
@@ -926,6 +1003,7 @@
             empInfo.fullName,
             empInfo.subtitle,
             deptLabel,
+            rowPlatform || '',
             row.Note || '',
             String(row.IDDipendente || ''),
             String(row.IDArchivio || '')
@@ -954,6 +1032,10 @@
 
       const activeFilters = [];
       if (els.departmentSelect.value !== 'ALL') activeFilters.push(`Reparto: ${selectedOptionText}`);
+      if (els.platformFilter.value !== 'ALL') {
+        const platOptionText = els.platformFilter.options[els.platformFilter.selectedIndex]?.text || els.platformFilter.value;
+        activeFilters.push(`Piattaforma: ${platOptionText}`);
+      }
       if (els.visibilityFilter.value === 'VISIBLE') activeFilters.push('Solo visibili');
       if (els.visibilityFilter.value === 'HIDDEN') activeFilters.push('Solo nascosti');
       if (els.monthYearFilter.value) activeFilters.push(`Periodo: ${formatMonthYearIT(els.monthYearFilter.value)}`);
@@ -975,7 +1057,7 @@
         els.tableWrapper.classList.add('hidden');
         els.emptyState.classList.remove('hidden');
         els.emptyTitle.textContent = 'Nessun dipendente corrisponde ai filtri';
-        els.emptySubtitle.textContent = 'Prova a cambiare reparto, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
+        els.emptySubtitle.textContent = 'Prova a cambiare reparto, IDPiattaforma, mese/anno, attivare anche i record nascosti o svuotare la ricerca testuale.';
         return;
       }
 
@@ -986,6 +1068,7 @@
         const empInfo = getEmployeeDisplayInfo(row);
         const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
         const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
+        const rowPlatform = getPlatformValue(row);
 
         const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
         const activeToday = isRecordActiveToday(row);
@@ -994,6 +1077,10 @@
         const turnazioneBadge = (row.Turnazione !== null && row.Turnazione !== undefined)
           ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">Turno ${escapeHtml(row.Turnazione)}</span>`
           : `<span class="text-xs text-slate-400">—</span>`;
+
+        const platformBadge = rowPlatform !== null
+          ? `<span class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">Piattaforma ${escapeHtml(rowPlatform)}</span>`
+          : '';
 
         const statusBadge = isVis
           ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Visibile</span>`
@@ -1031,6 +1118,7 @@
             </td>
             <td class="px-5 py-3.5 whitespace-nowrap">
               ${turnazioneBadge}
+              ${platformBadge}
             </td>
             <td class="px-5 py-3.5 whitespace-nowrap text-xs text-slate-700">
               <span>${formatDateIT(row.DA)}</span>
@@ -1060,11 +1148,12 @@
       const empInfo = getEmployeeDisplayInfo(row);
       const deptObj = row.CICC_Tbl_Impostazioni_Reparto || state.departments.find(d => d.ID === row.IDReparto);
       const deptLabel = getDepartmentLabel(deptObj, row.IDReparto);
+      const rowPlatform = getPlatformValue(row);
       const isVis = row.Visibile === 1 || row.Visibile === true || row.Visibile === -1;
 
       document.getElementById('modalDeptBadge').textContent = deptLabel;
       document.getElementById('modalEmployeeName').textContent = empInfo.fullName;
-      document.getElementById('modalEmployeeIds').textContent = `ID Dipendente: ${row.IDDipendente} • ${empInfo.subtitle}`;
+      document.getElementById('modalEmployeeIds').textContent = `ID Dipendente: ${row.IDDipendente} • ${empInfo.subtitle}${rowPlatform !== null ? ` • IDPiattaforma: ${rowPlatform}` : ''}`;
       document.getElementById('modalDateFrom').textContent = formatDateIT(row.DA);
       document.getElementById('modalDateTo').textContent = formatDateIT(row.AL);
       document.getElementById('modalShift').textContent = row.Turnazione !== null && row.Turnazione !== undefined ? `Turno ${row.Turnazione}` : 'Non specificata';
@@ -1100,12 +1189,14 @@
     });
 
     els.departmentSelect.addEventListener('change', renderDashboard);
+    els.platformFilter.addEventListener('change', renderDashboard);
     els.searchInput.addEventListener('input', renderDashboard);
     els.visibilityFilter.addEventListener('change', renderDashboard);
     els.monthYearFilter.addEventListener('change', renderDashboard);
 
     els.resetFiltersBtn.addEventListener('click', () => {
       els.departmentSelect.value = 'ALL';
+      els.platformFilter.value = 'ALL';
       els.searchInput.value = '';
       els.visibilityFilter.value = 'VISIBLE';
       els.monthYearFilter.value = '';
